@@ -59,7 +59,8 @@ class ASTConstructor {
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
           constructType(retType),
-          constructExpr(body)
+          constructExpr(body),
+          isInlined = false
         ).setPos(df)
     }
   }

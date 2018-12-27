@@ -12,6 +12,36 @@ import Tokens._
 // override whatever has changed. You can look into ASTConstructor as an example.
 class ASTConstructorLL1 extends ASTConstructor {
 
+  override def constructDef0(pTree: NodeOrLeaf[Token]): ClassOrFunDef = {
+    pTree match {
+      case Node('AbstractClassDef ::= _, List(Leaf(abs), _, name)) =>
+        AbstractClassDef(constructName(name)._1).setPos(abs)
+      case Node('CaseClassDef ::= _, List(Leaf(cse), _, name, _, params, _, _, parent)) =>
+        CaseClassDef(
+          constructName(name)._1,
+          constructList(params, constructParam, hasComma = true).map(_.tt),
+          constructName(parent)._1
+        ).setPos(cse)
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+        FunDef(
+          constructName(name)._1,
+          constructList(params, constructParam, hasComma = true),
+          constructType(retType),
+          constructExpr(body),
+          isInlined = true
+        ).setPos(df)
+
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+        FunDef(
+          constructName(name)._1,
+          constructList(params, constructParam, hasComma = true),
+          constructType(retType),
+          constructExpr(body),
+          isInlined = false
+        ).setPos(df)
+    }
+  }
+
   override def constructQname(ptree: NodeOrLeaf[Token]): (QualifiedName, Positioned) = {
     ptree match {
       case Node('QName ::= _, List(id, qnameInner)) =>

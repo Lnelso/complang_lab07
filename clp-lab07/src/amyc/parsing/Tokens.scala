@@ -31,6 +31,8 @@ object Tokens {
   case class TRUE()     extends Token
   case class UNIT()     extends Token
   case class VAL()      extends Token
+  //New functionality: Inlining
+  case class INLINE()   extends Token
 
   /* Operators */
   case class SEMICOLON()  extends Token // ;

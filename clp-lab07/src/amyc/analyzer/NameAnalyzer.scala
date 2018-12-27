@@ -61,7 +61,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
                                                      case _ => Nil}}
 
     // Step 5: Discover functions signatures, add them to table
-    p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, _) =>
+    p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, _, _) =>
                                                        val paramsToSymbolic = params.map(param => transformType(param.tt, module.name))
                                                        val retToSymbolic = transformType(retType, module.name)
                                                        table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic)
@@ -89,7 +89,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
     }}.setPos(df)
 
     def transformFunDef(fd: N.FunDef, module: String): S.FunDef = {
-      val N.FunDef(name, params, retType, body) = fd
+      val N.FunDef(name, params, retType, body, isInlined) = fd
       val Some((sym, sig)) = table.getFunction(module, name)
 
       params.groupBy(_.name).foreach { case (nameIn, ps) =>
@@ -111,7 +111,8 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
         sym,
         newParams,
         S.TypeTree(sig.retType).setPos(retType),
-        transformExpr(body)(module, (paramsMap, Map()))
+        transformExpr(body)(module, (paramsMap, Map())),
+        isInlined
       ).setPos(fd)
     }
 
