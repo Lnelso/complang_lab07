@@ -4,7 +4,7 @@
 
   <head>
     <meta charset="utf-8">
-    <title>TestLists</title>
+    <title>Inlining</title>
   </head>
 
   <body>
@@ -50,8 +50,8 @@
         }
       };
 
-      fetchAndInstantiate('wasmout/TestLists.wasm', importObject).then(function(instance) {
-        instance.exports.TestLists_main();
+      fetchAndInstantiate('wasmout/Inlining.wasm', importObject).then(function(instance) {
+        instance.exports.Inlining_main();
       });
     </script>
   </body>

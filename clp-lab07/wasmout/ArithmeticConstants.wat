@@ -259,114 +259,25 @@
     end
   )
 
-  (func $TestLists_inlinedSquare (param i32) (result i32) 
+  (func $ArithmeticConstants_test (result i32) (local i32)
+    i32.const 5
+    i32.const 3
+    i32.add
+    i32.const 2
+    i32.add
+    set_local 0
     get_local 0
-    get_local 0
-    i32.mul
   )
-  (export "TestLists_main" (func $TestLists_main))
-  (func $TestLists_main 
-    get_global 0
-    i32.const 0
-    i32.add
-    i32.const 53
-    i32.store8
-    get_global 0
-    i32.const 1
-    i32.add
-    i32.const 94
-    i32.store8
-    get_global 0
-    i32.const 2
-    i32.add
-    i32.const 50
-    i32.store8
-    get_global 0
-    i32.const 3
-    i32.add
-    i32.const 32
-    i32.store8
-    get_global 0
-    i32.const 4
-    i32.add
-    i32.const 61
-    i32.store8
-    get_global 0
-    i32.const 5
-    i32.add
-    i32.const 32
-    i32.store8
-    get_global 0
-    i32.const 6
-    i32.add
-    i32.const 0
-    i32.store8
-    get_global 0
-    i32.const 7
-    i32.add
-    i32.const 0
-    i32.store8
-    get_global 0
-    get_global 0
-    i32.const 8
-    i32.add
-    set_global 0
-    i32.const 5
-    call $TestLists_inlinedSquare
-    call $Std_intToString
-    call $String_concat
-    call $Std_printString
-    drop
-    get_global 0
-    i32.const 0
-    i32.add
-    i32.const 49
-    i32.store8
-    get_global 0
-    i32.const 1
-    i32.add
-    i32.const 48
-    i32.store8
-    get_global 0
-    i32.const 2
-    i32.add
-    i32.const 94
-    i32.store8
-    get_global 0
-    i32.const 3
-    i32.add
-    i32.const 50
-    i32.store8
-    get_global 0
-    i32.const 4
-    i32.add
-    i32.const 32
-    i32.store8
-    get_global 0
-    i32.const 5
-    i32.add
-    i32.const 61
-    i32.store8
-    get_global 0
-    i32.const 6
-    i32.add
-    i32.const 32
-    i32.store8
-    get_global 0
-    i32.const 7
-    i32.add
-    i32.const 0
-    i32.store8
-    get_global 0
-    get_global 0
-    i32.const 8
-    i32.add
-    set_global 0
+
+  (func $ArithmeticConstants_testBis (result i32) (local i32)
     i32.const 10
-    call $TestLists_inlinedSquare
-    call $Std_intToString
-    call $String_concat
-    call $Std_printString
+    set_local 0
+    get_local 0
+  )
+  (export "ArithmeticConstants_main" (func $ArithmeticConstants_main))
+  (func $ArithmeticConstants_main 
+    call $ArithmeticConstants_test
+    call $Std_printInt
     drop
   )
 )

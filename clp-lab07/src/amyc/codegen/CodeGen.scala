@@ -6,7 +6,7 @@ import ast.{Identifier, SymbolicTreeModule}
 import ast.SymbolicTreeModule.{And => AmyAnd, Call => AmyCall, Div => AmyDiv, Or => AmyOr, _}
 import utils.{Context, Pipeline}
 import wasm._
-import Instructions._
+import Instructions.{SetLocal, _}
 import Utils._
 
 // Generates WebAssembly code for an Amy program
@@ -42,6 +42,31 @@ object CodeGen extends Pipeline[(Program, SymbolTable), Module] {
         } else {
           body
         }
+      }
+    }
+
+    def cgFunctionNewLocals(qname: QualifiedName, funSig: FunSig, lh: LocalsHandler): Code = {
+
+      def helper(instructions: List[Instruction], newEnv: Map[Int, Int], lh: LocalsHandler): Map[Int, Int] = instructions match{
+        case Nil => newEnv
+        case x :: xs => x match{
+          case GetLocal(idx) if newEnv.get(idx).isEmpty => helper(xs, newEnv + (idx -> lh.getFreshLocal()), lh)
+          case SetLocal(idx) if newEnv.get(idx).isEmpty=> helper(xs, newEnv + (idx -> lh.getFreshLocal()), lh)
+          case GetGlobal(idx) if newEnv.get(idx).isEmpty=> helper(xs, newEnv + (idx -> lh.getFreshLocal()), lh)
+          case SetGlobal(idx) if newEnv.get(idx).isEmpty=> helper(xs, newEnv + (idx -> lh.getFreshLocal()), lh)
+          case _ => helper(xs, newEnv, lh)
+        }
+      }
+
+      val fd = program.modules.filter(x => x.name == funSig.owner).head.defs.filter(x => x.name == qname).head.asInstanceOf[FunDef]
+      val code = cgFunction(fd, funSig.owner, isMain = false).code
+      val newEnv = helper(code.instructions, Map(), lh)
+      code.instructions.map {
+        case GetLocal(idx) => GetLocal(newEnv(idx))
+        case SetLocal(idx) => SetLocal(newEnv(idx))
+        case GetGlobal(idx) => GetGlobal(newEnv(idx))
+        case SetGlobal(idx) => SetGlobal(newEnv(idx))
+        case x => x
       }
     }
 
@@ -129,7 +154,13 @@ object CodeGen extends Pipeline[(Program, SymbolTable), Module] {
         case AmyCall(qname, args) =>
           val constr = table.getFunction(qname)
           constr match{
-            case Some(funSig) => args.map(cgExpr) <:> Call(fullName(funSig.owner, qname))
+            case Some(funSig) =>
+              if(funSig.isInlined){
+                cgFunctionNewLocals(qname, funSig, lh)
+              }
+              else{
+                args.map(cgExpr) <:> Call(fullName(funSig.owner, qname))
+              }
             case None =>
               val constructor = table.getConstructor(qname).get
               val freshId = lh.getFreshLocal()

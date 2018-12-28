@@ -109,7 +109,10 @@ object TypeChecker extends Pipeline[(Program, SymbolTable), (Program, SymbolTabl
           val constr = table.getFunction(qname)
           val sig = if (constr.isDefined) constr.get else table.getConstructor(qname).get
           val constraints = args.zip(sig.argTypes).map { case (exprIn, exprType) => genConstraints(exprIn, exprType)}
-          constraints.reduce(_ ++ _) ++ topLevelConstraint(sig.retType)
+          if(constraints.isEmpty)
+            topLevelConstraint(sig.retType)
+          else
+            constraints.reduce(_ ++ _) ++ topLevelConstraint(sig.retType)
 
         // The ; operator
         case Sequence(e1, e2) => genConstraints(e1, TypeVariable.fresh()) ++ genConstraints(e2, expected)

@@ -61,10 +61,10 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
                                                      case _ => Nil}}
 
     // Step 5: Discover functions signatures, add them to table
-    p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, _, _) =>
+    p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, _, isInlined) =>
                                                        val paramsToSymbolic = params.map(param => transformType(param.tt, module.name))
                                                        val retToSymbolic = transformType(retType, module.name)
-                                                       table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic)
+                                                       table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined)
                                                      case _ => Nil}}
 
     // Step 6: We now know all definitions in the program.

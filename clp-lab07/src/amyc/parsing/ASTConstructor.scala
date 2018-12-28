@@ -15,7 +15,6 @@ class ASTConstructor {
       case Node('Program ::= _, List(mods)) =>
         val modules = constructList(mods, constructModule)
         val p = Program(modules)
-        print(p)
         if (modules.nonEmpty) p.setPos(modules.head) else p
     }
   }
