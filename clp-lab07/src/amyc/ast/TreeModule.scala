@@ -30,7 +30,11 @@ trait TreeModule {
   }
 
   // Expressions
-  trait Expr extends Tree
+  trait Expr extends Tree{
+    def asInt: Int = this.asInstanceOf[IntLiteral].value
+    def asBoolean: Boolean = this.asInstanceOf[BooleanLiteral].value
+    def asString: String = this.asInstanceOf[StringLiteral].value
+  }
 
   // Variables
   case class Variable(name: Name) extends Expr

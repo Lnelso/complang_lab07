@@ -258,94 +258,116 @@
       set_global 0
     end
   )
-  (export "Hello_main" (func $Hello_main))
-  (func $Hello_main 
-    get_global 0
+
+  (func $Arithmetic_pow (param i32 i32) (result i32) (local i32)
+    get_local 1
     i32.const 0
-    i32.add
-    i32.const 72
-    i32.store8
-    get_global 0
-    i32.const 1
-    i32.add
-    i32.const 101
-    i32.store8
-    get_global 0
-    i32.const 2
-    i32.add
-    i32.const 108
-    i32.store8
-    get_global 0
-    i32.const 3
-    i32.add
-    i32.const 108
-    i32.store8
-    get_global 0
-    i32.const 4
-    i32.add
-    i32.const 111
-    i32.store8
-    get_global 0
-    i32.const 5
-    i32.add
-    i32.const 32
-    i32.store8
-    get_global 0
-    i32.const 6
-    i32.add
-    i32.const 119
-    i32.store8
-    get_global 0
-    i32.const 7
-    i32.add
-    i32.const 111
-    i32.store8
-    get_global 0
-    i32.const 8
-    i32.add
-    i32.const 114
-    i32.store8
-    get_global 0
-    i32.const 9
-    i32.add
-    i32.const 108
-    i32.store8
-    get_global 0
+    i32.eq
+    if (result i32)
+      i32.const 1
+    else
+      get_local 1
+      i32.const 2
+      i32.rem_s
+      i32.const 0
+      i32.eq
+      if (result i32)
+        get_local 0
+        get_local 1
+        i32.const 2
+        i32.div_s
+        call $Arithmetic_pow
+        set_local 2
+        get_local 2
+        get_local 2
+        i32.mul
+      else
+        get_local 0
+        get_local 0
+        get_local 1
+        i32.const 1
+        i32.sub
+        call $Arithmetic_pow
+        i32.mul
+      end
+    end
+  )
+
+  (func $Arithmetic_gcd (param i32 i32) (result i32) 
+    get_local 0
+    i32.const 0
+    i32.eq
+    if (result i32)
+      i32.const 1
+    else
+      get_local 1
+      i32.const 0
+      i32.eq
+    end
+    if (result i32)
+      get_local 0
+      get_local 1
+      i32.add
+    else
+      get_local 0
+      get_local 1
+      i32.lt_s
+      if (result i32)
+        get_local 0
+        get_local 1
+        get_local 0
+        i32.rem_s
+        call $Arithmetic_gcd
+      else
+        get_local 0
+        get_local 1
+        i32.rem_s
+        get_local 1
+        call $Arithmetic_gcd
+      end
+    end
+  )
+  (export "Arithmetic_main" (func $Arithmetic_main))
+  (func $Arithmetic_main 
+    i32.const 0
     i32.const 10
-    i32.add
-    i32.const 100
-    i32.store8
-    get_global 0
-    i32.const 11
-    i32.add
-    i32.const 33
-    i32.store8
-    get_global 0
-    i32.const 12
-    i32.add
+    call $Arithmetic_pow
+    call $Std_printInt
+    drop
+    i32.const 1
+    i32.const 5
+    call $Arithmetic_pow
+    call $Std_printInt
+    drop
+    i32.const 2
+    i32.const 10
+    call $Arithmetic_pow
+    call $Std_printInt
+    drop
+    i32.const 3
+    i32.const 3
+    call $Arithmetic_pow
+    call $Std_printInt
+    drop
     i32.const 0
-    i32.store8
-    get_global 0
-    i32.const 13
-    i32.add
-    i32.const 0
-    i32.store8
-    get_global 0
-    i32.const 14
-    i32.add
-    i32.const 0
-    i32.store8
-    get_global 0
-    i32.const 15
-    i32.add
-    i32.const 0
-    i32.store8
-    get_global 0
-    get_global 0
+    i32.const 10
+    call $Arithmetic_gcd
+    call $Std_printInt
+    drop
+    i32.const 17
+    i32.const 99
+    call $Arithmetic_gcd
+    call $Std_printInt
+    drop
     i32.const 16
-    i32.add
-    set_global 0
-    call $Std_printString
+    i32.const 46
+    call $Arithmetic_gcd
+    call $Std_printInt
+    drop
+    i32.const 222
+    i32.const 888
+    call $Arithmetic_gcd
+    call $Std_printInt
     drop
   )
 )

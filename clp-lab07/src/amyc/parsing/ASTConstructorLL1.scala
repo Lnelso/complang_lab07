@@ -229,7 +229,8 @@ class ASTConstructorLL1 extends ASTConstructor {
   // with correct associativity.
   // If ptree is empty, it means we have no more operators and the leftopd is returned.
   // Note: You may have to override constructOp also, depending on your implementation
-  def constructOpExpr(leftopd: Expr, ptree: NodeOrLeaf[Token]): Expr = {
+  def constructOpExpr(leftopd: Expr, ptree: NodeOrLeaf[Token], cstFolding: Boolean = false): Expr = {
+
     ptree match {
       case Node(_, List()) => //epsilon rule of the nonterminals
         leftopd
@@ -248,7 +249,56 @@ class ASTConstructorLL1 extends ASTConstructor {
               case Node('PR9 ::= _, _) => constructExprPR9(nextOpd)
               case Node('PR10 ::= _, _) => constructExprPR10(nextOpd)
             }
-            constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf) // captures left associativity
+
+            if(cstFolding){
+              val sameLiteralType = (leftopd, nextAtom) match{
+                case (IntLiteral(_), IntLiteral(_)) => true
+                case (StringLiteral(_), StringLiteral(_)) => true
+                case (BooleanLiteral(_), BooleanLiteral(_)) => true
+                case _ => false
+              }
+
+              if(sameLiteralType) {
+                val opConstructed = constructOp(op)
+                opConstructed match {
+                  case Plus => constructOpExpr(IntLiteral(leftopd.asInt + nextAtom.asInt).setPos(leftopd), suf)
+                  case Minus => constructOpExpr(IntLiteral(leftopd.asInt - nextAtom.asInt).setPos(leftopd), suf)
+                  case Times => constructOpExpr(IntLiteral(leftopd.asInt * nextAtom.asInt).setPos(leftopd), suf)
+                  case Div =>
+                    if (nextAtom.asInt != 0)
+                      constructOpExpr(IntLiteral(leftopd.asInt / nextAtom.asInt).setPos(leftopd), suf)
+                    else
+                      Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+                  case Mod =>
+                    if (nextAtom.asInt != 0)
+                      constructOpExpr(IntLiteral(leftopd.asInt % nextAtom.asInt).setPos(leftopd), suf)
+                    else
+                      Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+                  case LessThan => constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf)
+                  case LessEquals => constructOpExpr(BooleanLiteral(leftopd.asInt <= nextAtom.asInt).setPos(leftopd), suf)
+                  case And => constructOpExpr(BooleanLiteral(leftopd.asBoolean || nextAtom.asBoolean).setPos(leftopd), suf)
+                  case Or => constructOpExpr(BooleanLiteral(leftopd.asBoolean && nextAtom.asBoolean).setPos(leftopd), suf)
+                  case Equals => ((leftopd, nextAtom): @unchecked) match {
+                    case (IntLiteral(v1), IntLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 == v2).setPos(leftopd), suf)
+                    case (StringLiteral(v1), StringLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 eq v2).setPos(leftopd), suf)
+                    case (BooleanLiteral(v1), BooleanLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 == v2).setPos(leftopd), suf)
+                  }
+                  case Concat => constructOpExpr(StringLiteral(leftopd.asString + nextAtom.asString).setPos(leftopd), suf)
+                  case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf)
+
+                    /* how to take care of those?
+                   case SEMICOLON() => ???
+                   case BANG() => ???
+                  */
+                }
+              }
+              else{
+                constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf)
+              }
+            }
+            else{
+              constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf)
+            }
         }
     }
   }
