@@ -265,19 +265,314 @@
     i32.mul
   )
 
-  (func $Inlining_test (result i32) (local i32 i32 i32 i32)
-    get_local 1
-    get_local 1
-    i32.mul
-    set_local 0
-    get_local 3
-    get_local 3
-    i32.mul
+  (func $Inlining_test (param i32) (result i32) (local i32 i32 i32 i32)
+    i32.const 2
     set_local 2
-    get_local 0
+    get_local 2
+    get_local 2
+    i32.mul
+    set_local 1
+    i32.const 3
+    set_local 4
+    get_local 4
+    get_local 4
+    i32.mul
+    set_local 3
+    get_local 1
   )
   (export "Inlining_main" (func $Inlining_main))
-  (func $Inlining_main 
+  (func $Inlining_main (local i32 i32 i32 i32 i32)
+    get_global 0
+    i32.const 0
+    i32.add
+    i32.const 53
+    i32.store8
+    get_global 0
+    i32.const 1
+    i32.add
+    i32.const 94
+    i32.store8
+    get_global 0
+    i32.const 2
+    i32.add
+    i32.const 50
+    i32.store8
+    get_global 0
+    i32.const 3
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 4
+    i32.add
+    i32.const 61
+    i32.store8
+    get_global 0
+    i32.const 5
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 6
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    i32.const 7
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    get_global 0
+    i32.const 8
+    i32.add
+    set_global 0
+    i32.const 5
+    set_local 0
+    get_local 0
+    get_local 0
+    i32.mul
+    call $Std_intToString
+    call $String_concat
+    call $Std_printString
+    drop
+    get_global 0
+    i32.const 0
+    i32.add
+    i32.const 49
+    i32.store8
+    get_global 0
+    i32.const 1
+    i32.add
+    i32.const 48
+    i32.store8
+    get_global 0
+    i32.const 2
+    i32.add
+    i32.const 94
+    i32.store8
+    get_global 0
+    i32.const 3
+    i32.add
+    i32.const 50
+    i32.store8
+    get_global 0
+    i32.const 4
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 5
+    i32.add
+    i32.const 61
+    i32.store8
+    get_global 0
+    i32.const 6
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 7
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    get_global 0
+    i32.const 8
+    i32.add
+    set_global 0
+    i32.const 10
+    set_local 1
+    get_local 1
+    get_local 1
+    i32.mul
+    call $Std_intToString
+    call $String_concat
+    call $Std_printString
+    drop
+    get_global 0
+    i32.const 0
+    i32.add
+    i32.const 49
+    i32.store8
+    get_global 0
+    i32.const 1
+    i32.add
+    i32.const 48
+    i32.store8
+    get_global 0
+    i32.const 2
+    i32.add
+    i32.const 48
+    i32.store8
+    get_global 0
+    i32.const 3
+    i32.add
+    i32.const 94
+    i32.store8
+    get_global 0
+    i32.const 4
+    i32.add
+    i32.const 50
+    i32.store8
+    get_global 0
+    i32.const 5
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 6
+    i32.add
+    i32.const 61
+    i32.store8
+    get_global 0
+    i32.const 7
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 8
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    i32.const 9
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    i32.const 10
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    i32.const 11
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    get_global 0
+    i32.const 12
+    i32.add
+    set_global 0
+    i32.const 100
+    set_local 2
+    get_local 2
+    get_local 2
+    i32.mul
+    call $Std_intToString
+    call $String_concat
+    call $Std_printString
+    drop
+    get_global 0
+    i32.const 0
+    i32.add
+    i32.const 57
+    i32.store8
+    get_global 0
+    i32.const 1
+    i32.add
+    i32.const 94
+    i32.store8
+    get_global 0
+    i32.const 2
+    i32.add
+    i32.const 50
+    i32.store8
+    get_global 0
+    i32.const 3
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 4
+    i32.add
+    i32.const 61
+    i32.store8
+    get_global 0
+    i32.const 5
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 6
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    i32.const 7
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    get_global 0
+    i32.const 8
+    i32.add
+    set_global 0
+    i32.const 9
+    set_local 3
+    get_local 3
+    get_local 3
+    i32.mul
+    call $Std_intToString
+    call $String_concat
+    call $Std_printString
+    drop
+    get_global 0
+    i32.const 0
+    i32.add
+    i32.const 53
+    i32.store8
+    get_global 0
+    i32.const 1
+    i32.add
+    i32.const 94
+    i32.store8
+    get_global 0
+    i32.const 2
+    i32.add
+    i32.const 50
+    i32.store8
+    get_global 0
+    i32.const 3
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 4
+    i32.add
+    i32.const 61
+    i32.store8
+    get_global 0
+    i32.const 5
+    i32.add
+    i32.const 32
+    i32.store8
+    get_global 0
+    i32.const 6
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    i32.const 7
+    i32.add
+    i32.const 0
+    i32.store8
+    get_global 0
+    get_global 0
+    i32.const 8
+    i32.add
+    set_global 0
+    i32.const 5
+    set_local 4
+    get_local 4
+    get_local 4
+    i32.mul
+    call $Std_intToString
+    call $String_concat
+    call $Std_printString
+    drop
+    i32.const 3
     call $Inlining_test
     call $Std_intToString
     call $Std_printString

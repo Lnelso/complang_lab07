@@ -18,7 +18,7 @@ object CodeGen extends Pipeline[(Program, SymbolTable), Module] {
     def cgModule(moduleDef: ModuleDef): List[Function] = {
       val ModuleDef(name, defs, optExpr) = moduleDef
       // Generate code for all functions
-      defs.collect { case fd: FunDef if !builtInFunctions(fullName(name, fd.name)) =>
+      defs.collect { case fd: FunDef if !builtInFunctions(fullName(name, fd.name))=>
         cgFunction(fd, name, false)
       } ++
       // Generate code for the "main" function, which contains the module expression
@@ -45,27 +45,14 @@ object CodeGen extends Pipeline[(Program, SymbolTable), Module] {
       }
     }
 
-    def cgFunctionNewLocals(qname: QualifiedName, funSig: FunSig, lh: LocalsHandler): Code = {
-
-      def helper(instructions: List[Instruction], newEnv: Map[Int, Int], lh: LocalsHandler): Map[Int, Int] = instructions match{
-        case Nil => newEnv
-        case x :: xs => x match{
-          case GetLocal(idx) if newEnv.get(idx).isEmpty => helper(xs, newEnv + (idx -> lh.getFreshLocal()), lh)
-          case SetLocal(idx) if newEnv.get(idx).isEmpty=> helper(xs, newEnv + (idx -> lh.getFreshLocal()), lh)
-          case GetGlobal(idx) if newEnv.get(idx).isEmpty=> helper(xs, newEnv + (idx -> lh.getFreshLocal()), lh)
-          case SetGlobal(idx) if newEnv.get(idx).isEmpty=> helper(xs, newEnv + (idx -> lh.getFreshLocal()), lh)
-          case _ => helper(xs, newEnv, lh)
-        }
-      }
-
-      val fd = program.modules.filter(x => x.name == funSig.owner).head.defs.filter(x => x.name == qname).head.asInstanceOf[FunDef]
+    def cgInnerFunction(qname: QualifiedName, fd: FunDef, funSig: FunSig, locals: Map[Identifier, Int]): Code = {
       val code = cgFunction(fd, funSig.owner, isMain = false).code
-      val newEnv = helper(code.instructions, Map(), lh)
+      val newIndex = fd.params.zipWithIndex.map(x => (x._2, locals(x._1.name)))
       code.instructions.map {
-        case GetLocal(idx) => GetLocal(newEnv(idx))
-        case SetLocal(idx) => SetLocal(newEnv(idx))
-        case GetGlobal(idx) => GetGlobal(newEnv(idx))
-        case SetGlobal(idx) => SetGlobal(newEnv(idx))
+        case GetLocal(idx) => GetLocal(newIndex.filter(x => x._1 == idx).head._2)
+        case SetLocal(idx) => SetLocal(newIndex.filter(x => x._1 == idx).head._2)
+        case GetGlobal(idx) => GetGlobal(newIndex.filter(x => x._1 == idx).head._2)
+        case SetGlobal(idx) => SetGlobal(newIndex.filter(x => x._1 == idx).head._2)
         case x => x
       }
     }
@@ -156,7 +143,10 @@ object CodeGen extends Pipeline[(Program, SymbolTable), Module] {
           constr match{
             case Some(funSig) =>
               if(funSig.isInlined){
-                cgFunctionNewLocals(qname, funSig, lh)
+                val fd = program.modules.filter(x => x.name == funSig.owner).head.defs.filter(x => x.name == qname).head.asInstanceOf[FunDef]
+                val newLocals = fd.params.foldLeft(locals){(acc, curr) => acc + (curr.name -> lh.getFreshLocal())}
+                val argsWithName = args.zip(fd.params.map(x => x.name))
+                argsWithName.map(argWithName => cgExpr(argWithName._1)(newLocals, lh) <:> SetLocal(newLocals(argWithName._2))) <:> cgInnerFunction(qname, fd, funSig, newLocals)
               }
               else{
                 args.map(cgExpr) <:> Call(fullName(funSig.owner, qname))
