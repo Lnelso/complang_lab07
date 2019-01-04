@@ -26,7 +26,6 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
 
     modNames.keys.toList foreach table.addModule
 
-
     // Helper method: will transform a nominal type 'tt' to a symbolic type,
     // given that we are within module 'inModule'.
     def transformType(tt: N.TypeTree, inModule: String): S.Type = {
@@ -61,10 +60,10 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
                                                      case _ => Nil}}
 
     // Step 5: Discover functions signatures, add them to table
-    p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, _, isInlined) =>
+    p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, _, _, isInlined, isLocal) =>
                                                        val paramsToSymbolic = params.map(param => transformType(param.tt, module.name))
                                                        val retToSymbolic = transformType(retType, module.name)
-                                                       table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined)
+                                                       table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined, isLocal)
                                                      case _ => Nil}}
 
     // Step 6: We now know all definitions in the program.
@@ -89,7 +88,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
     }}.setPos(df)
 
     def transformFunDef(fd: N.FunDef, module: String): S.FunDef = {
-      val N.FunDef(name, params, retType, body, isInlined) = fd
+      val N.FunDef(name, params, retType, localFunDefs, body, isInlined, isLocal) = fd
       val Some((sym, sig)) = table.getFunction(module, name)
 
       params.groupBy(_.name).foreach { case (nameIn, ps) =>
@@ -107,13 +106,59 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
 
       val paramsMap = paramNames.zip(newParams.map(_.name)).toMap
 
+      val localFunDefMap = localFunDefs map { case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))} toMap
+
       S.FunDef(
         sym,
         newParams,
         S.TypeTree(sig.retType).setPos(retType),
-        transformExpr(body)(module, (paramsMap, Map())),
-        isInlined
+        localFunDefs.map(e => transformFunDefLocals(e, module, localFunDefMap)),//TODO add list of translated functions
+        transformExpr(body)(module, (paramsMap, localFunDefMap)),
+        isInlined,
+        isLocal
       ).setPos(fd)
+    }
+
+    def transformFunDefLocals(fd: N.FunDef, module: String, localsMap: Map[String, Identifier]): S.FunDef = {
+      val N.FunDef(name, params, retType, localFunDefs, body, isInlined, isLocal) = fd
+      val Some((sym, sig)) = table.getFunction(module, name)
+
+      params.groupBy(_.name).foreach { case (nameIn, ps) =>
+        if (ps.size > 1) {
+          fatal(s"Two parameters named $nameIn in function ${fd.name}", fd)
+        }
+      }
+
+      val paramNames = params.map(_.name)
+
+      val newParams = params zip sig.argTypes map { case (pd@N.ParamDef(nameIn, tt), tpe) =>
+        val s = Identifier.fresh(nameIn)
+        S.ParamDef(s, S.TypeTree(tpe).setPos(tt)).setPos(pd)
+      }
+
+      val paramsMap = paramNames.zip(newParams.map(_.name)).toMap
+
+      val localFunDefMap = localFunDefs map { case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))} toMap
+
+      S.FunDef(
+        sym,
+        newParams,
+        S.TypeTree(sig.retType).setPos(retType),
+        localFunDefs.map(e => transformFunDefLocals(e, module, localsMap ++ localFunDefMap)),
+        transformExpr(body)(module, (paramsMap, localsMap ++ localFunDefMap)),
+        isInlined,
+        isLocal
+      ).setPos(fd)
+      }
+
+    def a(i1: Int):Int ={
+      def b(i2: Int):Int = {
+        def c(i3:Int):Int ={
+          b(i3)
+        }
+        c(i2)
+      }
+      b(i1)
     }
 
     // This function takes as implicit a pair of two maps:
@@ -169,7 +214,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
           case Some(value) => S.Variable(value)
           case None => locals.get(name) match{
             case Some(value) => S.Variable(value)
-            case None => fatal(s"Variable  $name in module $module is unknown", variable)
+            case None => fatal(s"Variable $name in module $module is unknown", variable)
           }
         }
 

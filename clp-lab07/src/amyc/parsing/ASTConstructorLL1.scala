@@ -1,6 +1,7 @@
 package amyc
 package parsing
 
+import scala.collection.mutable.HashMap
 import grammarcomp.parsing._
 import utils.Positioned
 import ast.NominalTreeModule._
@@ -22,22 +23,29 @@ class ASTConstructorLL1 extends ASTConstructor {
           constructList(params, constructParam, hasComma = true).map(_.tt),
           constructName(parent)._1
         ).setPos(cse)
-      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
-        FunDef(
-          constructName(name)._1,
-          constructList(params, constructParam, hasComma = true),
-          constructType(retType),
-          constructExpr(body, cstFolding = true),
-          isInlined = true
-        ).setPos(df)
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>
+        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val fd = FunDef(
+                   constructName(name)._1,
+                   constructedParams,
+                   constructType(retType),
+                   constructFunDefLocal(listFunDefLocal, cstFolding = true),
+                   constructExpr(body),
+                   isInlined = true,
+                   isLocal = false
+                 ).setPos(df)
+        inlinedFunctions += (fd.name -> fd)
+        fd
 
-      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>
         FunDef(
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
           constructType(retType),
+          constructFunDefLocal(listFunDefLocal),
           constructExpr(body),
-          isInlined = false
+          isInlined = false,
+          isLocal = false
         ).setPos(df)
     }
   }
@@ -54,6 +62,43 @@ class ASTConstructorLL1 extends ASTConstructor {
             val (name, pos) = constructName(id)
             (QualifiedName(None, name), pos)
         }
+    }
+  }
+
+  def constructFunDef(ptree: NodeOrLeaf[Token]): FunDef = {
+    ptree match {
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>
+        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val fd = FunDef(
+          constructName(name)._1,
+          constructedParams,
+          constructType(retType),
+          constructFunDefLocal(listFunDefLocal, cstFolding = true),
+          constructExpr(body),
+          isInlined = true,
+          isLocal = true
+        ).setPos(df)
+        inlinedFunctions += (fd.name -> fd)
+        fd
+
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>
+        FunDef(
+          constructName(name)._1,
+          constructList(params, constructParam, hasComma = true),
+          constructType(retType),
+          constructFunDefLocal(listFunDefLocal),
+          constructExpr(body),
+          isInlined = false,
+          isLocal = true
+        ).setPos(df)
+    }
+  }
+
+  def constructFunDefLocal(ptree: NodeOrLeaf[Token], cstFolding: Boolean = false): List[FunDef] ={
+    ptree match {
+      case Node('FunDefLocal ::= List('FunDef, 'FunDefLocal), List(localFun, moreLocalFun)) =>
+        constructFunDef(localFun) :: constructFunDefLocal(moreLocalFun)
+      case _ => List()
     }
   }
 
@@ -162,19 +207,32 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val (name, _) = constructName(idIN)
                 val myargs = constructList(args, constructExpr, hasComma = true)
                 val qname = QualifiedName(Some(module), name)
+                //if(inlinedFunctions.get(name).isDefined) inlinedFunctions(name).body.setPos(pos) else Call(qname, myargs).setPos(pos)
                 Call(qname, myargs).setPos(pos)
               case Node('CallInner ::= (LPAREN() :: _), List(_, args, _)) =>
                 val (name, pos) = constructName(id)
                 val qname = QualifiedName(None, name)
                 val myargs = constructList(args, constructExpr, hasComma = true)
+                //print(args + "\n")
+                //print(myargs + " " + qname + "\n")
+
+                //if(inlinedFunctions.get(name).isDefined) inlinedFunctions(name).body.setPos(pos) else Call(qname, myargs).setPos(pos)
                 Call(qname, myargs).setPos(pos)
               case Node('CallInner ::= _, _) =>
                 val (name, pos) = constructName(id)
+                //if(inlinedFunctions.get(name).isDefined) inlinedFunctions(name).body.setPos(pos) else Variable(name).setPos(pos)
                 Variable(name).setPos(pos)
+
             }
         }
     }
   }
+
+ // def replaceParam(paramsName: List[Name], newParams: List[Expr], body: NodeOrLeaf[Token]): Expr ={
+ //   body match{
+ //     ???
+  // /  }
+ // }
 
   override def constructPattern(pTree: NodeOrLeaf[Token], cstFolding: Boolean = false): Pattern = {
     pTree match {

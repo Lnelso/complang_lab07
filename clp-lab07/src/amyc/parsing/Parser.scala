@@ -65,8 +65,10 @@ object Parser extends Pipeline[Stream[Token], Program] {
     'AbstractClassDef ::= ABSTRACT() ~ CLASS() ~ 'Id,
     'CaseClassDef ::= CASE() ~ CLASS() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ EXTENDS() ~ 'Id,
 
-    'FunDef ::= INLINE() ~ DEF() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ COLON() ~ 'Type ~ EQSIGN() ~ LBRACE() ~ 'Expr ~ RBRACE() |
-                DEF() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ COLON() ~ 'Type ~ EQSIGN() ~ LBRACE() ~ 'Expr ~ RBRACE(),
+    'FunDefLocal ::= 'FunDef ~ 'FunDefLocal | epsilon(),
+    'FunDef ::= INLINE() ~ DEF() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ COLON() ~ 'Type ~ EQSIGN() ~ LBRACE() ~ 'FunDefLocal ~ 'Expr ~ RBRACE() |
+                DEF() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ COLON() ~ 'Type ~ EQSIGN() ~ LBRACE() ~ 'FunDefLocal ~ 'Expr ~ RBRACE(),
+
     'Params ::= epsilon() | 'Param ~ 'ParamList,
     'ParamList ::= epsilon() | COMMA() ~ 'Param ~ 'ParamList,
     'Param ::= 'Id ~ COLON() ~ 'Type,
@@ -101,7 +103,7 @@ object Parser extends Pipeline[Stream[Token], Program] {
     'PR8 ::= 'PR9 ~ 'PR8Seq,                                                         // *, /, %
     'PR8Seq ::= TIMES() ~ 'PR8 | DIV() ~ 'PR8 | MOD() ~ 'PR8 | epsilon(),
 
-    'PR9 ::=  MINUS() ~ 'PR10 | BANG() ~ 'PR10 | 'PR10,                                      // -, !
+    'PR9 ::=  MINUS() ~ 'PR10 | BANG() ~ 'PR10 | 'PR10,                              // -, !
 
     'PR10 ::= LPAREN() ~ 'Closure | 'Literal | 'Error | 'If | 'Call,                 // error, if, calls, parenthesized expr, lit
 

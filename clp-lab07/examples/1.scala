@@ -1,0 +1,3 @@
+object HelloInt {
+1
+}
