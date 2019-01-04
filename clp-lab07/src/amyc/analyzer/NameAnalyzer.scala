@@ -169,7 +169,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
           case Some(value) => S.Variable(value)
           case None => locals.get(name) match{
             case Some(value) => S.Variable(value)
-            case None => fatal(s"Variable  $name in module $module is unknown", variable)
+            case None => fatal(s"Variable $name in module $module is unknown", variable)
           }
         }
 

@@ -101,7 +101,7 @@ object Parser extends Pipeline[Stream[Token], Program] {
     'PR8 ::= 'PR9 ~ 'PR8Seq,                                                         // *, /, %
     'PR8Seq ::= TIMES() ~ 'PR8 | DIV() ~ 'PR8 | MOD() ~ 'PR8 | epsilon(),
 
-    'PR9 ::=  MINUS() ~ 'PR10 | BANG() ~ 'PR10 | 'PR10,                                      // -, !
+    'PR9 ::=  MINUS() ~ 'PR10 | BANG() ~ 'PR10 | 'PR10,                              // -, !
 
     'PR10 ::= LPAREN() ~ 'Closure | 'Literal | 'Error | 'If | 'Call,                 // error, if, calls, parenthesized expr, lit
 

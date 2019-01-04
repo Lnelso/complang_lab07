@@ -6,15 +6,20 @@ import utils.Positioned
 import ast.NominalTreeModule._
 import Tokens._
 
+import scala.collection.mutable.HashMap
+
 // Will construct Amy trees from grammarcomp parse Trees.
 // Corresponds to Parser.msGrammar
 class ASTConstructor {
+
+  protected val inlinedFunctions = HashMap[Name, FunDef]()
 
   def constructProgram(ptree: NodeOrLeaf[Token]): Program = {
     ptree match {
       case Node('Program ::= _, List(mods)) =>
         val modules = constructList(mods, constructModule)
         val p = Program(modules)
+        print(p)
         if (modules.nonEmpty) p.setPos(modules.head) else p
     }
   }
