@@ -32,7 +32,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                    constructExpr(body, cstFolding = true),
                    isInlined = true
                  ).setPos(df)
-        inlinedFunctions += (fd.name -> fd)
+        inlinedFunctions += (fd.name -> (fd, body))
         fd
 
       case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
@@ -164,32 +164,44 @@ class ASTConstructorLL1 extends ASTConstructor {
               case Node('CallInner ::= (DOT() :: _), List(_, idIN, _, args, _)) =>
                 val (module, pos) = constructName(id)
                 val (name, _) = constructName(idIN)
-                val myargs = constructList(args, constructExpr, hasComma = true)
                 val qname = QualifiedName(Some(module), name)
-                //if(inlinedFunctions.get(name).isDefined) inlinedFunctions(name).body.setPos(pos) else Call(qname, myargs).setPos(pos)
-                Call(qname, myargs).setPos(pos)
+
+                if(inlinedFunctions.get(name).isDefined){
+                  val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
+                  val nameWithExpr = inlinedFunctions(name)._1.paramNames.zip(myargs)
+                  nameWithExpr.foreach(x =>  inlinedLocals += (x._1 -> x._2))
+                  constructExpr(inlinedFunctions(name)._2, true).setPos(pos)
+                }
+                else {
+                  val myargs = constructList(args, constructExpr, hasComma = true)
+                  Call(qname, myargs).setPos(pos)
+                }
+
               case Node('CallInner ::= (LPAREN() :: _), List(_, args, _)) =>
                 val (name, pos) = constructName(id)
                 val qname = QualifiedName(None, name)
-                val myargs = constructList(args, constructExpr, hasComma = true)
-                //print(args + "\n")
-                print(myargs + " " + qname + "\n")
 
-                if(inlinedFunctions.get(name).isDefined) inlinedFunctions(name).body.setPos(pos) else Call(qname, myargs).setPos(pos)
+                if(inlinedFunctions.get(name).isDefined){
+                  val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
+                  val nameWithExpr = inlinedFunctions(name)._1.paramNames.zip(myargs)
+                  nameWithExpr.foreach(x =>  inlinedLocals += (x._1 -> x._2))
+                  constructExpr(inlinedFunctions(name)._2, true).setPos(pos)
+                }
+                else{
+                  val myargs = constructList(args, constructExpr, hasComma = true)
+                  Call(qname, myargs).setPos(pos)
+                }
 
               case Node('CallInner ::= _, _) =>
                 val (name, pos) = constructName(id)
-                //if(inlinedFunctions.get(name).isDefined) inlinedFunctions(name).body.setPos(pos) else Variable(name).setPos(pos)
-                Variable(name).setPos(pos)
+
+                if(inlinedLocals.exists(x => x._1 == name))
+                  inlinedLocals(name)
+                else
+                  Variable(name).setPos(pos)
 
             }
         }
-    }
-  }
-
-  def replaceParam(paramsName: List[Name], newParams: List[Expr], body: NodeOrLeaf[Token]): Expr ={
-    body match{
-      ???
     }
   }
 
@@ -267,56 +279,121 @@ class ASTConstructorLL1 extends ASTConstructor {
               case Node('PR10 ::= _, _) => constructExprPR10(nextOpd, cstFolding)
             }
 
-            if(cstFolding){
-              val sameLiteralType = (leftopd, nextAtom) match{
-                case (IntLiteral(_), IntLiteral(_)) => true
-                case (StringLiteral(_), StringLiteral(_)) => true
-                case (BooleanLiteral(_), BooleanLiteral(_)) => true
-                case _ => false
-              }
-
-              if(sameLiteralType) {
-                val opConstructed = constructOp(op)
-                opConstructed match {
-                  case Plus => constructOpExpr(IntLiteral(leftopd.asInt + nextAtom.asInt).setPos(leftopd), suf, true)
-                  case Minus => constructOpExpr(IntLiteral(leftopd.asInt - nextAtom.asInt).setPos(leftopd), suf, true)
-                  case Times => constructOpExpr(IntLiteral(leftopd.asInt * nextAtom.asInt).setPos(leftopd), suf, true)
-                  case Div =>
-                    if (nextAtom.asInt != 0)
-                      constructOpExpr(IntLiteral(leftopd.asInt / nextAtom.asInt).setPos(leftopd), suf, true)
-                    else
-                      Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
-                  case Mod =>
-                    if (nextAtom.asInt != 0)
-                      constructOpExpr(IntLiteral(leftopd.asInt % nextAtom.asInt).setPos(leftopd), suf, true)
-                    else
-                      Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
-                  case LessThan => constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
-                  case LessEquals => constructOpExpr(BooleanLiteral(leftopd.asInt <= nextAtom.asInt).setPos(leftopd), suf, true)
-                  case And => constructOpExpr(BooleanLiteral(leftopd.asBoolean || nextAtom.asBoolean).setPos(leftopd), suf, true)
-                  case Or => constructOpExpr(BooleanLiteral(leftopd.asBoolean && nextAtom.asBoolean).setPos(leftopd), suf, true)
-                  case Equals => ((leftopd, nextAtom): @unchecked) match {
-                    case (IntLiteral(v1), IntLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 == v2).setPos(leftopd), suf, true)
-                    case (StringLiteral(v1), StringLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 eq v2).setPos(leftopd), suf, true)
-                    case (BooleanLiteral(v1), BooleanLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 == v2).setPos(leftopd), suf, true)
-                  }
-                  case Concat => constructOpExpr(StringLiteral(leftopd.asString + nextAtom.asString).setPos(leftopd), suf, true)
-                  case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
-
-                    /* how to take care of those?
-                   case SEMICOLON() => ???
-                   case BANG() => ???
-                  */
-                }
-              }
-              else{
-                constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
-              }
-            }
-            else{
-              constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, false)
-            }
+            if(cstFolding) constantFolding(leftopd, nextAtom, op, suf)
+            else constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, cstFolding)
         }
+    }
+  }
+
+  def constantFolding(leftopd: Expr, nextAtom: Expr, op: NodeOrLeaf[Token], suf: NodeOrLeaf[Token]): Expr = {
+    val opConstructed = constructOp(op)
+    opConstructed match {
+      case Plus => (leftopd, nextAtom) match {
+        case (IntLiteral(_), IntLiteral(_)) => constructOpExpr(IntLiteral(leftopd.asInt + nextAtom.asInt).setPos(leftopd), suf, true)
+        case (IntLiteral(_), Plus(lhs1: IntLiteral, rhs1)) => constructOpExpr(Plus(IntLiteral(leftopd.asInt + lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+        case (IntLiteral(_), Minus(lhs1: IntLiteral, rhs1)) => constructOpExpr(Minus(IntLiteral(leftopd.asInt + lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case Minus => (leftopd, nextAtom) match {
+        case (IntLiteral(_), IntLiteral(_)) => constructOpExpr(IntLiteral(leftopd.asInt - nextAtom.asInt).setPos(leftopd), suf, true)
+        case (IntLiteral(_), Plus(lhs1: IntLiteral, rhs1)) => constructOpExpr(Plus(IntLiteral(leftopd.asInt - lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+        case (IntLiteral(_), Minus(lhs1: IntLiteral, rhs1)) => constructOpExpr(Minus(IntLiteral(leftopd.asInt - lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case Times => (leftopd, nextAtom) match{
+        case (IntLiteral(_), IntLiteral(_)) => constructOpExpr(IntLiteral(leftopd.asInt * nextAtom.asInt).setPos(leftopd), suf, true)
+        case (IntLiteral(_), Times(lhs1: IntLiteral, rhs1)) => constructOpExpr(Times(IntLiteral(leftopd.asInt * lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+        case (IntLiteral(_), Div(lhs1: IntLiteral, rhs1)) => constructOpExpr(Div(IntLiteral(leftopd.asInt * lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+        case (IntLiteral(_), Mod(lhs1: IntLiteral, rhs1)) => constructOpExpr(Mod(IntLiteral(leftopd.asInt * lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case Div => (leftopd, nextAtom) match{
+        case (IntLiteral(_), IntLiteral(_)) =>
+          if (nextAtom.asInt != 0)
+            constructOpExpr(IntLiteral(leftopd.asInt / nextAtom.asInt).setPos(leftopd), suf, true)
+          else
+            Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+        case (IntLiteral(_), Times(lhs1: IntLiteral, rhs1)) =>
+          if (lhs1.asInt != 0)
+            constructOpExpr(Times(IntLiteral(leftopd.asInt / lhs1.asInt).setPos(leftopd), rhs1), suf, true)
+          else
+            Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+        case (IntLiteral(_), Div(lhs1: IntLiteral, rhs1)) =>
+          if (lhs1.asInt != 0)
+            constructOpExpr(Div(IntLiteral(leftopd.asInt / lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+          else
+            Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+        case (IntLiteral(_), Mod(lhs1: IntLiteral, rhs1)) =>
+          if (lhs1.asInt != 0)
+            constructOpExpr(Mod(IntLiteral(leftopd.asInt / lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+          else
+            Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case Mod => (leftopd, nextAtom) match{
+        case (IntLiteral(_), IntLiteral(_)) =>
+          if (nextAtom.asInt != 0)
+            constructOpExpr(IntLiteral(leftopd.asInt % nextAtom.asInt).setPos(leftopd), suf, true)
+          else
+            Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+        case (IntLiteral(_), Times(lhs1: IntLiteral, rhs1)) =>
+          if (lhs1.asInt != 0)
+            constructOpExpr(Times(IntLiteral(leftopd.asInt % lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+          else
+            Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+        case (IntLiteral(_), Div(lhs1: IntLiteral, rhs1)) =>
+          if (lhs1.asInt != 0)
+            constructOpExpr(Div(IntLiteral(leftopd.asInt % lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+          else
+            Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+        case (IntLiteral(_), Mod(lhs1: IntLiteral, rhs1)) =>
+          if (lhs1.asInt != 0)
+            constructOpExpr(Mod(IntLiteral(leftopd.asInt % lhs1.asInt), rhs1).setPos(leftopd), suf, true)
+          else
+            Error(StringLiteral("Error: dividing by zero")).setPos(leftopd)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case LessThan => (leftopd, nextAtom) match{
+        case (IntLiteral(_), IntLiteral(_)) => constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case LessEquals => (leftopd, nextAtom) match{
+        case (IntLiteral(_), IntLiteral(_)) => constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case And => (leftopd, nextAtom) match{
+        case (BooleanLiteral(_), BooleanLiteral(_)) => constructOpExpr(BooleanLiteral(leftopd.asBoolean && nextAtom.asBoolean).setPos(leftopd), suf, true)
+        case (BooleanLiteral(_), And(lhs1: BooleanLiteral, rhs1)) => constructOpExpr(And(BooleanLiteral(leftopd.asBoolean && lhs1.asBoolean), rhs1).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case Or => (leftopd, nextAtom) match{
+        case (BooleanLiteral(_), BooleanLiteral(_)) => constructOpExpr(BooleanLiteral(leftopd.asBoolean || nextAtom.asBoolean).setPos(leftopd), suf, true)
+        case (BooleanLiteral(_), Or(lhs1: BooleanLiteral, rhs1)) => constructOpExpr(Or(BooleanLiteral(leftopd.asBoolean || lhs1.asBoolean), rhs1).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case Equals => ((leftopd, nextAtom): @unchecked) match {
+        case (IntLiteral(v1), IntLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 == v2).setPos(leftopd), suf, true)
+        case (StringLiteral(v1), StringLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 eq v2).setPos(leftopd), suf, true)
+        case (BooleanLiteral(v1), BooleanLiteral(v2)) => constructOpExpr(BooleanLiteral(v1 == v2).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case Concat =>  (leftopd, nextAtom) match{
+        case (StringLiteral(_), StringLiteral(_)) => constructOpExpr(StringLiteral(leftopd.asString + nextAtom.asString).setPos(leftopd), suf, true)
+        case (StringLiteral(_), Concat(lhs1, rhs1)) => constructOpExpr(Concat(StringLiteral(leftopd.asString + lhs1.asString), rhs1).setPos(leftopd), suf, true)
+        case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
+      }
+
+      case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
     }
   }
 }

@@ -12,15 +12,17 @@ object TestInlining {
     2 * n
   }
 
-  def test(n: Int): Int ={
-    times2(times2(n+1))
+  inline def test(n: Int): Int ={
+    2 + 2 + times2(times2(n+1))
   }
 
   val a: Int = abs(123);
   val b: Int = abs(-456);
   val c: Int = times2(3);
+  val d: Int = test(1);
 
   Std.printString(Std.intToString(a));
   Std.printString(Std.intToString(b));
-  Std.printString(Std.intToString(c))
+  Std.printString(Std.intToString(c));
+  Std.printString(Std.intToString(d))
 }
