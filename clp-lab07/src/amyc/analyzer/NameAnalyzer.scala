@@ -248,6 +248,11 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
               if (paramsFunc.argTypes.size != args.size) {
                 fatal(s"Arguments number mismatch", call)
               }
+              if (paramsFunc.isLocal){
+                if (!locals.contains(qname.toString)){
+                  fatal(s"Function $qname is not in scope", call)
+                }
+              }
               S.Call(id, args.map(transformExpr))
             case None =>
               table.getConstructor(qname.module.getOrElse(module), qname.name) match {
