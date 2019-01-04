@@ -129,8 +129,26 @@ class ASTConstructorLL1 extends ASTConstructor {
 
   def constructExprPR9(ptree: NodeOrLeaf[Token], cstFolding: Boolean): Expr = {
     ptree match{
-      case Node('PR9 ::= (MINUS() :: _), List(Leaf(m), pr10)) => Neg(constructExprPR10(pr10, cstFolding)).setPos(m)
-      case Node('PR9 ::= (BANG() :: _), List(Leaf(b), pr10)) => Not(constructExprPR10(pr10, cstFolding)).setPos(b)
+      case Node('PR9 ::= (MINUS() :: _), List(Leaf(m), pr10)) =>
+        val expr10 = constructExprPR10(pr10, cstFolding)
+        if(cstFolding){
+          expr10 match{
+            case IntLiteral(value) => IntLiteral(-value).setPos(m)
+            case _ => expr10.setPos(m)
+          }
+        }
+        else
+          Neg(expr10).setPos(m)
+      case Node('PR9 ::= (BANG() :: _), List(Leaf(b), pr10)) =>
+        val expr10 = constructExprPR10(pr10, cstFolding)
+        if(cstFolding){
+          expr10 match{
+            case BooleanLiteral(value) => BooleanLiteral(!value).setPos(b)
+            case _ => expr10.setPos(b)
+          }
+        }
+        else
+          Not(expr10).setPos(b)
       case Node('PR9 ::= List('PR10), List(pr10)) => constructExprPR10(pr10, cstFolding)
     }
   }
