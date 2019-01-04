@@ -154,7 +154,11 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('PR10 ::= List('If), List(ifStm)) =>
         ifStm match {
           case Node('If ::= _, List(Leaf(it), _, cond, _, _, thenn, _, _, _, elze, _)) =>
-            Ite(constructExpr(cond), constructExpr(thenn), constructExpr(elze)).setPos(it)
+            val constructedCond = constructExpr(cond, cstFolding)
+            constructedCond match{
+              case BooleanLiteral(value) => if(value) constructExpr(thenn, cstFolding).setPos(it) else constructExpr(elze, cstFolding).setPos(it)
+              case _ => Ite(constructedCond, constructExpr(thenn, cstFolding), constructExpr(elze, cstFolding)).setPos(it)
+            }
         }
 
       case Node('PR10 ::= List('Call), List(call)) =>
@@ -364,7 +368,9 @@ class ASTConstructorLL1 extends ASTConstructor {
       }
 
       case LessEquals => (leftopd, nextAtom) match{
-        case (IntLiteral(_), IntLiteral(_)) => constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
+        case (IntLiteral(_), IntLiteral(_)) =>
+          print("came here")
+          constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
         case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
       }
 

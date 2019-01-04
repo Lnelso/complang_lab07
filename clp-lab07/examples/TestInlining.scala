@@ -1,5 +1,5 @@
 object TestInlining {
-  def abs(n: Int): Int = {
+  inline def abs(n: Int): Int = {
     if (n < 0){
       -n
     }
