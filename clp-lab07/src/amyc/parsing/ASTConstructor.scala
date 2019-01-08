@@ -6,20 +6,26 @@ import utils.Positioned
 import ast.NominalTreeModule._
 import Tokens._
 
+import scala.collection.mutable.HashMap
+
 // Will construct Amy trees from grammarcomp parse Trees.
 // Corresponds to Parser.msGrammar
 class ASTConstructor {
+
+  protected val inlinedFunctions = HashMap[Name, (FunDef, NodeOrLeaf[Token])]()
+  protected val inlinedLocals = HashMap[ Name, Expr]()
 
   def constructProgram(ptree: NodeOrLeaf[Token]): Program = {
     ptree match {
       case Node('Program ::= _, List(mods)) =>
         val modules = constructList(mods, constructModule)
         val p = Program(modules)
+        print(p)
         if (modules.nonEmpty) p.setPos(modules.head) else p
     }
   }
 
-  def constructModule(pTree: NodeOrLeaf[Token]): ModuleDef = {
+  def constructModule(pTree: NodeOrLeaf[Token], cstFolding: Boolean = false): ModuleDef = {
     pTree match {
       case Node('ModuleDef ::= _, List(Leaf(obj), name, _, defs, optExpr, _, _)) =>
         ModuleDef(
@@ -37,7 +43,7 @@ class ASTConstructor {
     }
   }
 
-  def constructDef(pTree: NodeOrLeaf[Token]): ClassOrFunDef = {
+  def constructDef(pTree: NodeOrLeaf[Token], cstFolding: Boolean = false): ClassOrFunDef = {
     pTree match {
       case Node('Definition ::= _, List(df)) =>
         constructDef0(df)
@@ -59,12 +65,13 @@ class ASTConstructor {
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
           constructType(retType),
-          constructExpr(body)
+          constructExpr(body),
+          isInlined = false
         ).setPos(df)
     }
   }
 
-  def constructParam(pTree: NodeOrLeaf[Token]): ParamDef = {
+  def constructParam(pTree: NodeOrLeaf[Token], cstFolding: Boolean = false): ParamDef = {
     pTree match {
       case Node('Param ::= _, List(nm, _, tpe)) =>
         val (name, pos) = constructName(nm)
@@ -123,7 +130,7 @@ class ASTConstructor {
     }
   }
 
-  def constructExpr(ptree: NodeOrLeaf[Token]): Expr = {
+  def constructExpr(ptree: NodeOrLeaf[Token], cstFolding: Boolean = false): Expr = {
     ptree match {
       case Node('Expr ::= List('Id), List(id)) =>
         val (name, pos) = constructName(id)
@@ -140,7 +147,7 @@ class ASTConstructor {
         Neg(constructExpr(e)).setPos(mt)
       case Node('Expr ::= ('QName :: _), List(name, _, as, _)) =>
         val (qname, pos) = constructQname(name)
-        val args = constructList(as, constructExpr, hasComma = true)
+        val args = constructList(as, constructExpr, hasComma = true, cstFolding)
         Call(qname, args).setPos(pos)
       case Node('Expr ::= List('Expr, SEMICOLON(), 'Expr), List(e1, _, e2)) =>
         val expr1 = constructExpr(e1)
@@ -186,7 +193,7 @@ class ASTConstructor {
     }
   }
 
-  def constructPattern(pTree: NodeOrLeaf[Token]): Pattern = {
+  def constructPattern(pTree: NodeOrLeaf[Token], cstFolding: Boolean = false): Pattern = {
     pTree match {
       case Node('Pattern ::= List(UNDERSCORE()), List(Leaf(ut))) =>
         WildcardPattern().setPos(ut)
@@ -198,7 +205,7 @@ class ASTConstructor {
         IdPattern(name).setPos(pos)
       case Node('Pattern ::= ('QName :: _), List(qn, _, patts, _)) =>
         val (qname, pos) = constructQname(qn)
-        val patterns = constructList(patts, constructPattern, hasComma = true)
+        val patterns = constructList(patts, constructPattern, hasComma = true, cstFolding)
         CaseClassPattern(qname, patterns).setPos(pos)
     }
   }
@@ -217,13 +224,13 @@ class ASTConstructor {
     * @tparam A The type of List elements
     * @return A list of parsed elements of type A
     */
-  def constructList[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A, hasComma: Boolean = false): List[A] = {
+  def constructList[A](ptree: NodeOrLeaf[Token], constructor: (NodeOrLeaf[Token], Boolean) => A, hasComma: Boolean = false, cstFolding: Boolean = false): List[A] = {
     ptree match {
       case Node(_, List()) => List()
       case Node(_, List(t, ts)) =>
-        constructor(t) :: constructList(ts, constructor, hasComma)
+        constructor(t, cstFolding) :: constructList(ts, constructor, hasComma, cstFolding)
       case Node(_, List(Leaf(COMMA()), t, ts)) if hasComma =>
-        constructor(t) :: constructList(ts, constructor, hasComma)
+        constructor(t, cstFolding) :: constructList(ts, constructor, hasComma, cstFolding)
     }
   }
 
@@ -259,11 +266,11 @@ class ASTConstructor {
     * @tparam A The type of the element
     * @return The element wrapped in Some(), or None if the production is empty.
     */
-  def constructOption[A](ptree: NodeOrLeaf[Token], constructor: NodeOrLeaf[Token] => A): Option[A] = {
+  def constructOption[A](ptree: NodeOrLeaf[Token], constructor: (NodeOrLeaf[Token], Boolean) => A): Option[A] = {
     ptree match {
       case Node(_, List()) => None
       case Node(_, List(t)) =>
-        Some(constructor(t))
+        Some(constructor(t, false))
     }
   }
 

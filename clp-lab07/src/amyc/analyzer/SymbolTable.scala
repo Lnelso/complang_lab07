@@ -11,7 +11,7 @@ trait Signature[RT <: Type]{
   val retType: RT
 }
 // The signature of a function in the symbol table
-case class FunSig(argTypes: List[Type], retType: Type, owner: Identifier) extends Signature[Type]
+case class FunSig(argTypes: List[Type], retType: Type, owner: Identifier, isInlined: Boolean = false) extends Signature[Type]
 // The signature of a constructor in the symbol table
 case class ConstrSig(argTypes: List[Type], parent: Identifier, index: Int) extends Signature[ClassType] {
   val retType = ClassType(parent)
@@ -68,10 +68,10 @@ class SymbolTable {
 
   def getConstructorsForType(t: Identifier) = typesToConstructors.get(t)
 
-  def addFunction(owner: String, name: String, argTypes: List[Type], retType: Type) = {
+  def addFunction(owner: String, name: String, argTypes: List[Type], retType: Type, isInlined: Boolean) = {
     val s = Identifier.fresh(name)
     defsByName += (owner, name) -> s
-    functions += s -> FunSig(argTypes, retType, getModule(owner).getOrElse(sys.error(s"Module $owner not found!")))
+    functions += s -> FunSig(argTypes, retType, getModule(owner).getOrElse(sys.error(s"Module $owner not found!")), isInlined = isInlined)
     s
   }
   def getFunction(owner: String, name: String): Option[(Identifier, FunSig)] = {

@@ -30,7 +30,11 @@ trait TreeModule {
   }
 
   // Expressions
-  trait Expr extends Tree
+  trait Expr extends Tree{
+    def asInt: Int = this.asInstanceOf[IntLiteral].value
+    def asBoolean: Boolean = this.asInstanceOf[BooleanLiteral].value
+    def asString: String = this.asInstanceOf[StringLiteral].value
+  }
 
   // Variables
   case class Variable(name: Name) extends Expr
@@ -87,7 +91,7 @@ trait TreeModule {
   trait Definition extends Tree { val name: Name }
   case class ModuleDef(name: Name, defs: List[ClassOrFunDef], optExpr: Option[Expr]) extends Definition
   trait ClassOrFunDef extends Definition
-  case class FunDef(name: Name, params: List[ParamDef], retType: TypeTree, body: Expr) extends ClassOrFunDef {
+  case class FunDef(name: Name, params: List[ParamDef], retType: TypeTree, body: Expr, isInlined: Boolean) extends ClassOrFunDef {
     def paramNames = params.map(_.name)
   }
   case class AbstractClassDef(name: Name) extends ClassOrFunDef

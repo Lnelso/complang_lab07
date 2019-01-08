@@ -33,6 +33,7 @@ object Lexer extends Pipeline[List[File], Stream[Token]] {
     case "true"     => Some(TRUE())
     case "Unit"     => Some(UNIT())
     case "val"      => Some(VAL())
+    case "inline"   => Some(INLINE())
     case _          => None
   }
 
