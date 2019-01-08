@@ -12,7 +12,8 @@ import scala.collection.mutable.HashMap
 // Corresponds to Parser.msGrammar
 class ASTConstructor {
 
-  protected val inlinedFunctions = HashMap[Name, FunDef]()
+  protected val inlinedFunctions = HashMap[Name, (FunDef, NodeOrLeaf[Token])]()
+  protected val inlinedLocals = HashMap[ Name, Expr]()
 
   def constructProgram(ptree: NodeOrLeaf[Token]): Program = {
     ptree match {
@@ -148,7 +149,7 @@ class ASTConstructor {
         Neg(constructExpr(e)).setPos(mt)
       case Node('Expr ::= ('QName :: _), List(name, _, as, _)) =>
         val (qname, pos) = constructQname(name)
-        val args = constructList(as, constructExpr, hasComma = true)
+        val args = constructList(as, constructExpr, hasComma = true, cstFolding)
         Call(qname, args).setPos(pos)
       case Node('Expr ::= List('Expr, SEMICOLON(), 'Expr), List(e1, _, e2)) =>
         val expr1 = constructExpr(e1)
@@ -206,7 +207,7 @@ class ASTConstructor {
         IdPattern(name).setPos(pos)
       case Node('Pattern ::= ('QName :: _), List(qn, _, patts, _)) =>
         val (qname, pos) = constructQname(qn)
-        val patterns = constructList(patts, constructPattern, hasComma = true)
+        val patterns = constructList(patts, constructPattern, hasComma = true, cstFolding)
         CaseClassPattern(qname, patterns).setPos(pos)
     }
   }
@@ -225,13 +226,13 @@ class ASTConstructor {
     * @tparam A The type of List elements
     * @return A list of parsed elements of type A
     */
-  def constructList[A](ptree: NodeOrLeaf[Token], constructor: (NodeOrLeaf[Token], Boolean) => A, hasComma: Boolean = false): List[A] = {
+  def constructList[A](ptree: NodeOrLeaf[Token], constructor: (NodeOrLeaf[Token], Boolean) => A, hasComma: Boolean = false, cstFolding: Boolean = false): List[A] = {
     ptree match {
       case Node(_, List()) => List()
       case Node(_, List(t, ts)) =>
-        constructor(t, false) :: constructList(ts, constructor, hasComma)
+        constructor(t, cstFolding) :: constructList(ts, constructor, hasComma, cstFolding)
       case Node(_, List(Leaf(COMMA()), t, ts)) if hasComma =>
-        constructor(t, false) :: constructList(ts, constructor, hasComma)
+        constructor(t, cstFolding) :: constructList(ts, constructor, hasComma, cstFolding)
     }
   }
 
