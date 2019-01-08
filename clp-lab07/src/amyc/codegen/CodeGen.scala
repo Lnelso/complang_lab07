@@ -23,7 +23,7 @@ object CodeGen extends Pipeline[(Program, SymbolTable), Module] {
       } ++
         // Generate code for the "main" function, which contains the module expression
         optExpr.toList.map { expr =>
-          val mainFd = FunDef(Identifier.fresh("main"), Nil, TypeTree(IntType), expr, isInlined = false)
+          val mainFd = FunDef(Identifier.fresh("main"), Nil, TypeTree(IntType), List(), expr, isInlined = false, isLocal = false)
           cgFunction(mainFd, name, true)
         }
     }

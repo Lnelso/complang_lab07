@@ -39,14 +39,14 @@ trait Printer {
         def printField(f: TypeTree) = "v: " <:> rec(f)
         "case class " <:> name <:> "(" <:> Lined(fields map printField, ", ") <:> ") extends " <:> parent
 
-      case FunDef(name, params, retType, body, false) =>
+      case FunDef(name, params, retType, _, body, false, _) =>
         Stacked(
           "def " <:> name <:> "(" <:> Lined(params map (rec(_)), ", ") <:> "): " <:> rec(retType) <:> " = {",
           Indented(rec(body, false)),
           "}"
         )
 
-      case FunDef(name, params, retType, body, true) =>
+      case FunDef(name, params, retType, _, body, true, _) =>
         Stacked(
           "inline def " <:> name <:> "(" <:> Lined(params map (rec(_)), ", ") <:> "): " <:> rec(retType) <:> " = {",
           Indented(rec(body, false)),

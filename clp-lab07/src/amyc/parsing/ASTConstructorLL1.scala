@@ -23,7 +23,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           constructList(params, constructParam, hasComma = true).map(_.tt),
           constructName(parent)._1
         ).setPos(cse)
-      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
         val constructedParams = constructList(params, constructParam, hasComma = true)
         val fd = FunDef(
                    constructName(name)._1,
@@ -37,7 +37,7 @@ class ASTConstructorLL1 extends ASTConstructor {
         inlinedFunctions += (fd.name -> (fd, body))
         fd
 
-      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
         FunDef(
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
@@ -67,18 +67,18 @@ class ASTConstructorLL1 extends ASTConstructor {
 
   def constructFunDef(ptree: NodeOrLeaf[Token]): FunDef = {
     ptree match {
-      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>
-        val constructedParams = constructList(params, constructParam, hasComma = true)
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
+        val constructedParams = constructList(params, constructParam, hasComma = true, true)
         val fd = FunDef(
           constructName(name)._1,
           constructedParams,
           constructType(retType),
           constructFunDefLocal(listFunDefLocal, cstFolding = true),
-          constructExpr(body),
+          constructExpr(body, cstFolding = true),
           isInlined = true,
           isLocal = true
         ).setPos(df)
-        inlinedFunctions += (fd.name -> fd)
+        inlinedFunctions += (fd.name -> (fd, body))
         fd
 
       case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>

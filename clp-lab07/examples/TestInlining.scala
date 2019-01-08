@@ -1,5 +1,5 @@
 object TestInlining {
-  def abs(n: Int): Int = {
+  inline def abs(n: Int): Int = {
     if (n < 0){
       -n
     }
@@ -8,11 +8,11 @@ object TestInlining {
     }
   }
 
-  def times2(n: Int): Int = {
+  inline def times2(n: Int): Int = {
     2 * n
   }
 
-  def func(n: Int): Int ={
+  inline def func(n: Int): Int ={
     2 + 2 + times2(times2(n+1))
   }
 
