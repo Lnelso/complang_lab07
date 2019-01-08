@@ -24,7 +24,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           constructName(parent)._1
         ).setPos(cse)
       case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
-        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val constructedParams = constructList(params, constructParam, hasComma = true, true)
         val fd = FunDef(
                    constructName(name)._1,
                    constructedParams,

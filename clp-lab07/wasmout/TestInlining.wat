@@ -265,6 +265,8 @@
     i32.lt_s
     if (result i32)
       get_local 0
+      i32.const -1
+      i32.mul
     else
       get_local 0
     end
@@ -276,24 +278,32 @@
     i32.mul
   )
 
-  (func $TestInlining_test (param i32) (result i32) 
-    i32.const 4
-    i32.const 4
+  (func $TestInlining_func (param i32) (result i32) 
+    i32.const 2
+    i32.const 2
+    i32.add
     get_local 0
     i32.const 1
     i32.add
-    i32.mul
+    call $TestInlining_times2
+    call $TestInlining_times2
     i32.add
   )
   (export "TestInlining_main" (func $TestInlining_main))
   (func $TestInlining_main (local i32 i32 i32 i32)
     i32.const 123
+    call $TestInlining_abs
     set_local 0
     i32.const 456
+    i32.const -1
+    i32.mul
+    call $TestInlining_abs
     set_local 1
-    i32.const 6
+    i32.const 3
+    call $TestInlining_times2
     set_local 2
-    i32.const 12
+    i32.const 1
+    call $TestInlining_func
     set_local 3
     get_local 0
     call $Std_intToString
