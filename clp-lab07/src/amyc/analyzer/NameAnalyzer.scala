@@ -169,17 +169,6 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
       ).setPos(fd)
       }
 
-    //TODO REMOVE THIS
-    def a(i1: Int):Int ={
-      def b(i2: Int):Int = {
-        def c(i3:Int):Int ={
-          b(i3)
-        }
-        c(i2)
-      }
-      b(i1)
-    }
-
     // This function takes as implicit a pair of two maps:
     // The first is a map from names of parameters to their unique identifiers,
     // the second is similar for local variables.

@@ -31,7 +31,6 @@ object CodeGen extends Pipeline[(Program, SymbolTable), Module] {
     def getLocalFun(fd: List[FunDef], name: Identifier): List[Function] = {
       fd match {
         case head :: tail => cgFunction(head, name, false) :: getLocalFun(head.localDefs, name) ::: getLocalFun(tail, name)
-        case head :: Nil => cgFunction(head, name, false) :: getLocalFun(head.localDefs, name)
         case Nil => List()
       }
     }
