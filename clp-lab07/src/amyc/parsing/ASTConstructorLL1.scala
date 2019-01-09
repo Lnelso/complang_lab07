@@ -27,12 +27,20 @@ class ASTConstructorLL1 extends ASTConstructor {
         ).setPos(cse)
       case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
         val constructedParams = constructList(params, constructParam, hasComma = true)
+        val constructedName = constructName(name)._1
+        val constrBody = constructExpr(body, cstFolding = true)
+        innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+
+        val shouldInline =
+
+
         val fd = FunDef(
-                   constructName(name)._1,
+                   constructedName,
                    constructedParams,
                    constructType(retType),
-                   constructFunDefLocal(listFunDefLocal, cstFolding = true),
-                   constructExpr(body, cstFolding = true),
+                   constrFunDefLoc,
+                   constrBody,
                    isInlined = true,
                    isLocal = false
                  ).setPos(df)
@@ -40,41 +48,18 @@ class ASTConstructorLL1 extends ASTConstructor {
         fd
 
       case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
-        FunDef(
-          constructName(name)._1,
-          constructList(params, constructParam, hasComma = true),
-          constructType(retType),
-          constructFunDefLocal(listFunDefLocal),
-          constructExpr(body),
-          isInlined = false,
-          isLocal = false
-        ).setPos(df)
-/*
-      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
-        val constructedParams = constructList(params, constructParam, hasComma = true)
-        val fd = FunDef(
-          constructName(name)._1,
-          constructedParams,
-          constructType(retType),
-          List(),
-          constructExpr(body, cstFolding = true),
-          isInlined = true,
-          isLocal = false
-        ).setPos(df)
-        inlinedFunctions += (fd.name -> (fd, body))
-        fd
+        val constrBody = constructExpr(body)
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
-      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
         FunDef(
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
           constructType(retType),
-          List(),
-          constructExpr(body),
+          constrFunDefLoc,
+          constrBody,
           isInlined = false,
           isLocal = false
         ).setPos(df)
-        */
     }
   }
 
@@ -109,12 +94,15 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
         val constructedParams = constructList(params, constructParam, hasComma = true, true)
+        val constrBody = constructExpr(body, cstFolding = true)
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+
         val fd = FunDef(
           constructName(name)._1,
           constructedParams,
           constructType(retType),
-          constructFunDefLocal(listFunDefLocal, cstFolding = true),
-          constructExpr(body, cstFolding = true),
+          constrFunDefLoc,
+          constrBody,
           isInlined = true,
           isLocal = true
         ).setPos(df)
@@ -122,42 +110,18 @@ class ASTConstructorLL1 extends ASTConstructor {
         fd
 
       case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
+        val constrBody = constructExpr(body)
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
+
         FunDef(
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
           constructType(retType),
-          constructFunDefLocal(listFunDefLocal),
-          constructExpr(body),
+          constrFunDefLoc,
+          constrBody,
           isInlined = false,
           isLocal = true
         ).setPos(df)
-
-/*
-      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
-        val constructedParams = constructList(params, constructParam, hasComma = true, true)
-        val fd = FunDef(
-          constructName(name)._1,
-          constructedParams,
-          constructType(retType),
-          List(),
-          constructExpr(body, cstFolding = true),
-          isInlined = true,
-          isLocal = true
-        ).setPos(df)
-        inlinedFunctions += (fd.name -> (fd, body))
-        fd
-
-      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
-        FunDef(
-          constructName(name)._1,
-          constructList(params, constructParam, hasComma = true),
-          constructType(retType),
-          List(),
-          constructExpr(body),
-          isInlined = false,
-          isLocal = true
-        ).setPos(df)
-        */
     }
   }
 
@@ -288,6 +252,8 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val (name, _) = constructName(idIN)
                 val qname = QualifiedName(Some(module), name)
 
+                name :: innerBodyCalls
+
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
                   val nameWithExpr = inlinedFunctions(name)._1.paramNames.zip(myargs)
@@ -302,6 +268,8 @@ class ASTConstructorLL1 extends ASTConstructor {
               case Node('CallInner ::= (LPAREN() :: _), List(_, args, _)) =>
                 val (name, pos) = constructName(id)
                 val qname = QualifiedName(None, name)
+
+                name :: innerBodyCalls
 
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)

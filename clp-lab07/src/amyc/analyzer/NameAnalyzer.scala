@@ -124,7 +124,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
 
       val localFunDefMap = localFunDefs map { case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))} toMap
 
-      val transformedLocalDefs = if(localFunDefs.isEmpty) List() else localFunDefs.map(e => transformFunDefLocals(e, module, localFunDefMap)) //TODO add list of translated functions
+      val transformedLocalDefs = if(localFunDefs.isEmpty) List() else localFunDefs.map(e => transformFunDefLocals(e, module, localFunDefMap, paramsMap)) //TODO add list of translated functions
 
       S.FunDef(
         sym,
@@ -137,7 +137,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
       ).setPos(fd)
     }
 
-    def transformFunDefLocals(fd: N.FunDef, module: String, localsMap: Map[String, Identifier]): S.FunDef = {
+    def transformFunDefLocals(fd: N.FunDef, module: String, localsMap: Map[String, Identifier], oldParamsMap: Map[String, Identifier]): S.FunDef = {
       val N.FunDef(name, params, retType, localFunDefs, body, isInlined, isLocal) = fd
       val Some((sym, sig)) = table.getFunction(module, name)
 
@@ -162,7 +162,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
         sym,
         newParams,
         S.TypeTree(sig.retType).setPos(retType),
-        localFunDefs.map(e => transformFunDefLocals(e, module, localsMap ++ localFunDefMap)),
+        localFunDefs.map(e => transformFunDefLocals(e, module, localsMap ++ localFunDefMap ++ oldParamsMap, paramsMap)),
         transformExpr(body)(module, (paramsMap, localsMap ++ localFunDefMap)),
         isInlined,
         isLocal

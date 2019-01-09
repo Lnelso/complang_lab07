@@ -1,11 +1,11 @@
 package amyc
 package parsing
 
-import grammarcomp.parsing._
 import utils.Positioned
 import ast.NominalTreeModule._
 import Tokens._
 
+import scala.collection.mutable
 import scala.collection.mutable.HashMap
 
 // Will construct Amy trees from grammarcomp parse Trees.
@@ -14,6 +14,8 @@ class ASTConstructor {
 
   protected val inlinedFunctions = HashMap[Name, (FunDef, NodeOrLeaf[Token])]()
   protected val inlinedLocals = HashMap[ Name, Expr]()
+  protected val innerBodyCalls = mutable.MutableList[Name]
+  protected val innerBodyRecur = HashMap[Name, List[Name]]
 
   def constructProgram(ptree: NodeOrLeaf[Token]): Program = {
     ptree match {
