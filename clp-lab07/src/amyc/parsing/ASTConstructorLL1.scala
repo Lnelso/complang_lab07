@@ -32,6 +32,7 @@ class ASTConstructorLL1 extends ASTConstructor {
         val constrBody = constructExpr(body, cstFolding = true)
         innerBodyRecur += (constructedName -> innerBodyCalls.toList)
         innerBodyCalls.clear()
+
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
 
         val shouldInline = shouldInlineRecur(constructedName, List())
@@ -57,11 +58,13 @@ class ASTConstructorLL1 extends ASTConstructor {
         val constrBody = constructExpr(body, cstFolding = true)
         innerBodyRecur += (constructedName -> innerBodyCalls.toList)
         innerBodyCalls.clear()
-        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
         val shouldInline = shouldInlineRecur(constructedName, List())
 
-        FunDef(
+        innerBodyRecur.clear()
+
+        val fd = FunDef(
           constructedName,
           constructedParams,
           constructType(retType),
@@ -70,13 +73,18 @@ class ASTConstructorLL1 extends ASTConstructor {
           isInlined = shouldInline,
           isLocal = false
         ).setPos(df)
+
+        if(shouldInline){
+          inlinedFunctions += (fd.name -> (fd, body))
+        }
+        fd
     }
   }
 
   def shouldInlineRecur(start: Name, acc: List[Name]): Boolean = {
     val a = innerBodyRecur(start)
     a match {
-      case head :: tail => if(acc.contains(start))false else a.map(e => shouldInlineRecur(e, start :: acc)).reduce((e1, e2) => e1 && e2)
+      case head :: tail => if(acc.contains(start)) false else a.map(e => shouldInlineRecur(e, start :: acc)).reduce((e1, e2) => e1 && e2)
       case Nil => true
     }
   }
@@ -144,7 +152,7 @@ class ASTConstructorLL1 extends ASTConstructor {
 
         val shouldInline = shouldInlineRecur(constructedName, List())
 
-        FunDef(
+        val fd = FunDef(
           constructedName,
           constructedParams,
           constructType(retType),
@@ -153,6 +161,11 @@ class ASTConstructorLL1 extends ASTConstructor {
           isInlined = shouldInline,
           isLocal = true
         ).setPos(df)
+
+        if(shouldInline){
+          inlinedFunctions += (fd.name -> (fd, body))
+        }
+        fd
     }
   }
 
