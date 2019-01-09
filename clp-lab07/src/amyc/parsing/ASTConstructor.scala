@@ -14,8 +14,8 @@ class ASTConstructor {
 
   protected val inlinedFunctions = HashMap[Name, (FunDef, NodeOrLeaf[Token])]()
   protected val inlinedLocals = HashMap[ Name, Expr]()
-  protected val innerBodyCalls = mutable.MutableList[Name]
-  protected val innerBodyRecur = HashMap[Name, List[Name]]
+  protected val innerBodyCalls = mutable.MutableList[Name]()
+  protected val innerBodyRecur = HashMap[Name, List[Name]]()
 
   def constructProgram(ptree: NodeOrLeaf[Token]): Program = {
     ptree match {

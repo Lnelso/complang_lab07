@@ -9,6 +9,7 @@ import ast.NominalTreeModule._
 import Tokens._
 
 
+
 // Implements the translation from parse trees to ASTs for the LL1 grammar,
 // that is, this should correspond to Parser.amyGrammarLL1.
 // We extend the plain ASTConstructor as some things will be the same -- you should
@@ -30,10 +31,12 @@ class ASTConstructorLL1 extends ASTConstructor {
         val constructedName = constructName(name)._1
         val constrBody = constructExpr(body, cstFolding = true)
         innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        innerBodyCalls.clear()
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
 
-        val shouldInline =
+        val shouldInline = shouldInlineRecur(constructedName, List())
 
+        innerBodyRecur.clear()
 
         val fd = FunDef(
                    constructedName,
@@ -48,18 +51,33 @@ class ASTConstructorLL1 extends ASTConstructor {
         fd
 
       case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
-        val constrBody = constructExpr(body)
-        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
+
+        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val constructedName = constructName(name)._1
+        val constrBody = constructExpr(body, cstFolding = true)
+        innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        innerBodyCalls.clear()
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+
+        val shouldInline = shouldInlineRecur(constructedName, List())
 
         FunDef(
-          constructName(name)._1,
-          constructList(params, constructParam, hasComma = true),
+          constructedName,
+          constructedParams,
           constructType(retType),
           constrFunDefLoc,
           constrBody,
-          isInlined = false,
+          isInlined = shouldInline,
           isLocal = false
         ).setPos(df)
+    }
+  }
+
+  def shouldInlineRecur(start: Name, acc: List[Name]): Boolean = {
+    val a = innerBodyRecur(start)
+    a match {
+      case head :: tail => if(acc.contains(start))false else a.map(e => shouldInlineRecur(e, start :: acc)).reduce((e1, e2) => e1 && e2)
+      case Nil => true
     }
   }
 
@@ -94,11 +112,18 @@ class ASTConstructorLL1 extends ASTConstructor {
     ptree match {
       case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
         val constructedParams = constructList(params, constructParam, hasComma = true, true)
+        val constructedName = constructName(name)._1
         val constrBody = constructExpr(body, cstFolding = true)
+
+        innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        innerBodyCalls.clear()
+
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
 
+        val shouldInline = shouldInlineRecur(constructedName, List())
+
         val fd = FunDef(
-          constructName(name)._1,
+          constructedName,
           constructedParams,
           constructType(retType),
           constrFunDefLoc,
@@ -110,16 +135,22 @@ class ASTConstructorLL1 extends ASTConstructor {
         fd
 
       case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
-        val constrBody = constructExpr(body)
-        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
+        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val constructedName = constructName(name)._1
+        val constrBody = constructExpr(body, cstFolding = true)
+        innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        innerBodyCalls.clear()
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+
+        val shouldInline = shouldInlineRecur(constructedName, List())
 
         FunDef(
-          constructName(name)._1,
-          constructList(params, constructParam, hasComma = true),
+          constructedName,
+          constructedParams,
           constructType(retType),
           constrFunDefLoc,
           constrBody,
-          isInlined = false,
+          isInlined = shouldInline,
           isLocal = true
         ).setPos(df)
     }
