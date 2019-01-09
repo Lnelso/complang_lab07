@@ -126,7 +126,7 @@ class ASTConstructorLL1 extends ASTConstructor {
         innerBodyRecur += (constructedName -> innerBodyCalls.toList)
         innerBodyCalls.clear()
 
-        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
         val shouldInline = shouldInlineRecur(constructedName, List())
 
@@ -145,10 +145,10 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
         val constructedParams = constructList(params, constructParam, hasComma = true)
         val constructedName = constructName(name)._1
-        val constrBody = constructExpr(body, cstFolding = true)
+        val constrBody = constructExpr(body)
         innerBodyRecur += (constructedName -> innerBodyCalls.toList)
         innerBodyCalls.clear()
-        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
         val shouldInline = shouldInlineRecur(constructedName, List())
 
@@ -297,6 +297,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val qname = QualifiedName(Some(module), name)
 
                 innerBodyCalls ++ name
+
 
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
