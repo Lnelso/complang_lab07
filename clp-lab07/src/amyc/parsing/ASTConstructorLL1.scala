@@ -283,7 +283,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val (name, _) = constructName(idIN)
                 val qname = QualifiedName(Some(module), name)
 
-                name :: innerBodyCalls
+                innerBodyCalls ++ name
 
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
@@ -300,7 +300,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val (name, pos) = constructName(id)
                 val qname = QualifiedName(None, name)
 
-                name :: innerBodyCalls
+                innerBodyCalls ++ name
 
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
