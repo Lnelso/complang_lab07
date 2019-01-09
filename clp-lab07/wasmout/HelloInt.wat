@@ -95,9 +95,15 @@
     call $js_readString0
     set_global 0
   )
+
+  (func $HelloInt_foo (param i32) (result i32) 
+    get_local 0
+    call $HelloInt_plus1
+  )
   (export "HelloInt_main" (func $HelloInt_main))
   (func $HelloInt_main 
     i32.const 1
+    call $HelloInt_foo
     drop
   )
 )

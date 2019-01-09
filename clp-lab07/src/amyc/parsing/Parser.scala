@@ -142,7 +142,7 @@ object Parser extends Pipeline[Stream[Token], Program] {
 
     GrammarUtils.isLL1WithFeedback(grammar) match {
       case InLL1() =>
-        // info("Grammar is in LL1")
+         //info("Grammar is in LL1")
       case other =>
         warning(other)
     }

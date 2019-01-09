@@ -1,11 +1,13 @@
 package amyc
 package parsing
 
+import amyc.utils._
 import scala.collection.mutable.HashMap
 import grammarcomp.parsing._
 import utils.Positioned
 import ast.NominalTreeModule._
 import Tokens._
+
 
 // Implements the translation from parse trees to ASTs for the LL1 grammar,
 // that is, this should correspond to Parser.amyGrammarLL1.
@@ -47,6 +49,32 @@ class ASTConstructorLL1 extends ASTConstructor {
           isInlined = false,
           isLocal = false
         ).setPos(df)
+/*
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val fd = FunDef(
+          constructName(name)._1,
+          constructedParams,
+          constructType(retType),
+          List(),
+          constructExpr(body, cstFolding = true),
+          isInlined = true,
+          isLocal = false
+        ).setPos(df)
+        inlinedFunctions += (fd.name -> (fd, body))
+        fd
+
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+        FunDef(
+          constructName(name)._1,
+          constructList(params, constructParam, hasComma = true),
+          constructType(retType),
+          List(),
+          constructExpr(body),
+          isInlined = false,
+          isLocal = false
+        ).setPos(df)
+        */
     }
   }
 
@@ -62,6 +90,18 @@ class ASTConstructorLL1 extends ASTConstructor {
             val (name, pos) = constructName(id)
             (QualifiedName(None, name), pos)
         }
+    }
+  }
+
+  def constructFunDefLocal(ptree: NodeOrLeaf[Token], cstFolding: Boolean = false): List[FunDef] ={
+    ptree match {
+      case Node('FunDefLocal ::= List('FunDef, 'FunDefLocal), List(localFun, moreLocalFun)) =>
+        constructFunDef(localFun) :: constructFunDefLocal(moreLocalFun)
+
+      case Node('FunDefLocal ::= _, List(localFun)) =>
+        List(constructFunDef(localFun))
+
+      case _ => List()
     }
   }
 
@@ -81,7 +121,7 @@ class ASTConstructorLL1 extends ASTConstructor {
         inlinedFunctions += (fd.name -> (fd, body))
         fd
 
-      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _, _)) =>
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
         FunDef(
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
@@ -91,14 +131,33 @@ class ASTConstructorLL1 extends ASTConstructor {
           isInlined = false,
           isLocal = true
         ).setPos(df)
-    }
-  }
 
-  def constructFunDefLocal(ptree: NodeOrLeaf[Token], cstFolding: Boolean = false): List[FunDef] ={
-    ptree match {
-      case Node('FunDefLocal ::= List('FunDef, 'FunDefLocal), List(localFun, moreLocalFun)) =>
-        constructFunDef(localFun) :: constructFunDefLocal(moreLocalFun)
-      case _ => List()
+/*
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+        val constructedParams = constructList(params, constructParam, hasComma = true, true)
+        val fd = FunDef(
+          constructName(name)._1,
+          constructedParams,
+          constructType(retType),
+          List(),
+          constructExpr(body, cstFolding = true),
+          isInlined = true,
+          isLocal = true
+        ).setPos(df)
+        inlinedFunctions += (fd.name -> (fd, body))
+        fd
+
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+        FunDef(
+          constructName(name)._1,
+          constructList(params, constructParam, hasComma = true),
+          constructType(retType),
+          List(),
+          constructExpr(body),
+          isInlined = false,
+          isLocal = true
+        ).setPos(df)
+        */
     }
   }
 
