@@ -55,7 +55,7 @@ class ASTConstructorLL1 extends ASTConstructor {
 
         val constructedParams = constructList(params, constructParam, hasComma = true)
         val constructedName = constructName(name)._1
-        val constrBody = constructExpr(body, cstFolding = true)
+        val constrBody = constructExpr(body)
         innerBodyRecur += (constructedName -> innerBodyCalls.toList)
         innerBodyCalls.clear()
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
@@ -69,7 +69,7 @@ class ASTConstructorLL1 extends ASTConstructor {
           constructedParams,
           constructType(retType),
           constrFunDefLoc,
-          constrBody,
+          constructExpr(body, shouldInline),
           isInlined = shouldInline,
           isLocal = false
         ).setPos(df)
@@ -152,12 +152,13 @@ class ASTConstructorLL1 extends ASTConstructor {
 
         val shouldInline = shouldInlineRecur(constructedName, List())
 
+
         val fd = FunDef(
           constructedName,
           constructedParams,
           constructType(retType),
           constrFunDefLoc,
-          constrBody,
+          constructExpr(body, shouldInline),
           isInlined = shouldInline,
           isLocal = true
         ).setPos(df)

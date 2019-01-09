@@ -97,26 +97,27 @@
   )
 
   (func $HelloInt_foo (param i32) (result i32) 
+    i32.const 4
     get_local 0
-    call $HelloInt_a
+    i32.mul
+    i32.const 1
+    i32.add
   )
 
-  (func $HelloInt_a (param i32) (result i32) 
-    i32.const 7
+  (func $HelloInt_plus1 (param i32) (result i32) 
     get_local 0
-    i32.lt_s
-    if (result i32)
-      get_local 0
-    else
-      get_local 0
-      i32.const 1
-      i32.add
-      call $HelloInt_a
-    end
+    i32.const 1
+    i32.add
+  )
+
+  (func $HelloInt_times2 (param i32) (result i32) 
+    i32.const 2
+    get_local 0
+    i32.mul
   )
   (export "HelloInt_main" (func $HelloInt_main))
   (func $HelloInt_main 
-    i32.const 8
+    i32.const 5
     drop
   )
 )
