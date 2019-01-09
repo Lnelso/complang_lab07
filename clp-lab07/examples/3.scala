@@ -1,9 +1,7 @@
 object HelloInt {
   def foo(n: Int): Int = {
-    def a(n:Int):Int = {
-      if(7 < n) {n} else {a(n+1)}
-    }
-    a(n)
+def plus1(n: Int): Int = { if(4 < n) {n} else { plus1(n + 1)} }
+plus1(n) // inl
   }
   foo(1)
 }
