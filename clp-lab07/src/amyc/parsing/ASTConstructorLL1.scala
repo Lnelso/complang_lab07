@@ -101,7 +101,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       case Node('FunDefLocal ::= _, List(localFun)) =>
         List(constructFunDef(localFun))
 
-      case _ => List()
+      case Node('FunDefLocal ::= _, List()) => List()
     }
   }
 

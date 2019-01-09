@@ -1,6 +1,6 @@
 object HelloInt {
   def foo(n: Int): Int = {
-   1
+   n
   }
   foo(1)
 }

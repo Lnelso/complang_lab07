@@ -64,17 +64,22 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
     p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, listLocalFunDef, _, isInlined, isLocal) =>
                                                        val paramsToSymbolic = params.map(param => transformType(param.tt, module.name))
                                                        val retToSymbolic = transformType(retType, module.name)
-                                                        if(!listLocalFunDef.isEmpty) {addLocalDefsToSymbolTable(listLocalFunDef, module)}
+                                                        addLocalDefsToSymbolTable(listLocalFunDef, module)
                                                         table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined, isLocal)
                                                      case _ => Nil}}
 
-    def addLocalDefsToSymbolTable(listLocalFunDef: List[N.FunDef], module: N.ModuleDef): Unit = {
-      listLocalFunDef.foreach{ case N.FunDef(name, params, retType, listLocalFunDef, _, isInlined, isLocal) =>
-        val paramsToSymbolic = params.map(param => transformType(param.tt, module.name))
-        val retToSymbolic = transformType(retType, module.name)
-        if(!listLocalFunDef.isEmpty) {addLocalDefsToSymbolTable(listLocalFunDef, module)}
-        table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined, isLocal)
-      case _ => Nil}
+    def addLocalDefsToSymbolTable(listFunDef: List[N.FunDef], module: N.ModuleDef): Unit = {
+      if(listFunDef.nonEmpty){
+        listFunDef.foreach{
+          case N.FunDef(name, params, retType, listLocalFunDef, _, isInlined, isLocal) =>
+            val paramsToSymbolic = params.map(param => transformType(param.tt, module.name))
+            val retToSymbolic = transformType(retType, module.name)
+            addLocalDefsToSymbolTable(listLocalFunDef, module)
+            table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined, isLocal)
+
+          case _ => Nil
+        }
+      }
     }
 
     // Step 6: We now know all definitions in the program.
@@ -151,7 +156,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
 
       val paramsMap = paramNames.zip(newParams.map(_.name)).toMap
 
-      val localFunDefMap = localFunDefs map { case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))} toMap
+      val localFunDefMap = localFunDefs.map{ case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))}.toMap
 
       S.FunDef(
         sym,
@@ -164,6 +169,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
       ).setPos(fd)
       }
 
+    //TODO REMOVE THIS
     def a(i1: Int):Int ={
       def b(i2: Int):Int = {
         def c(i3:Int):Int ={
