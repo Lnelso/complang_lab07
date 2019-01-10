@@ -60,8 +60,6 @@ class ASTConstructorLL1 extends ASTConstructor {
         innerBodyCalls.clear()
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
-        val shouldInline = shouldInlineRecur(constructedName, List())
-
         innerBodyRecur.clear()
 
         val fd = FunDef(
@@ -69,14 +67,11 @@ class ASTConstructorLL1 extends ASTConstructor {
           constructedParams,
           constructType(retType),
           constrFunDefLoc,
-          constructExpr(body, shouldInline),
-          isInlined = shouldInline,
+          constructExpr(body, false),
+          isInlined = false,
           isLocal = false
         ).setPos(df)
 
-        if(shouldInline){
-          inlinedFunctions += (fd.name -> (fd, body))
-        }
         fd
     }
   }
@@ -297,8 +292,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val (name, _) = constructName(idIN)
                 val qname = QualifiedName(Some(module), name)
 
-                innerBodyCalls ++ name
-
+                innerBodyCalls += name
 
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
@@ -315,7 +309,7 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val (name, pos) = constructName(id)
                 val qname = QualifiedName(None, name)
 
-                innerBodyCalls ++ name
+                innerBodyCalls += name
 
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
@@ -500,9 +494,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       }
 
       case LessEquals => (leftopd, nextAtom) match{
-        case (IntLiteral(_), IntLiteral(_)) =>
-          print("came here")
-          constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
+        case (IntLiteral(_), IntLiteral(_)) => constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
         case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
       }
 

@@ -96,28 +96,191 @@
     set_global 0
   )
 
-  (func $HelloInt_foo (param i32) (result i32) 
-    i32.const 4
+  (func $Std_printBoolean (param i32) (result i32) 
     get_local 0
-    i32.mul
-    i32.const 1
-    i32.add
+    call $Std_booleanToString
+    call $Std_printString
+  )
+
+  (func $Std_intToString (param i32) (result i32) (local i32 i32)
+    get_local 0
+    i32.const 0
+    i32.lt_s
+    if (result i32)
+      get_global 0
+      i32.const 0
+      i32.add
+      i32.const 45
+      i32.store8
+      get_global 0
+      i32.const 1
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      i32.const 2
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      i32.const 3
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      get_global 0
+      i32.const 4
+      i32.add
+      set_global 0
+      get_local 0
+      i32.const -1
+      i32.mul
+      call $Std_intToString
+      call $String_concat
+    else
+      get_local 0
+      i32.const 10
+      i32.rem_s
+      set_local 1
+      get_local 0
+      i32.const 10
+      i32.div_s
+      set_local 2
+      get_local 2
+      i32.const 0
+      i32.eq
+      if (result i32)
+        get_local 1
+        call $Std_digitToString
+      else
+        get_local 2
+        call $Std_intToString
+        get_local 1
+        call $Std_digitToString
+        call $String_concat
+      end
+    end
+  )
+
+  (func $Std_booleanToString (param i32) (result i32) 
+    get_local 0
+    if (result i32)
+      get_global 0
+      i32.const 0
+      i32.add
+      i32.const 116
+      i32.store8
+      get_global 0
+      i32.const 1
+      i32.add
+      i32.const 114
+      i32.store8
+      get_global 0
+      i32.const 2
+      i32.add
+      i32.const 117
+      i32.store8
+      get_global 0
+      i32.const 3
+      i32.add
+      i32.const 101
+      i32.store8
+      get_global 0
+      i32.const 4
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      i32.const 5
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      i32.const 6
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      i32.const 7
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      get_global 0
+      i32.const 8
+      i32.add
+      set_global 0
+    else
+      get_global 0
+      i32.const 0
+      i32.add
+      i32.const 102
+      i32.store8
+      get_global 0
+      i32.const 1
+      i32.add
+      i32.const 97
+      i32.store8
+      get_global 0
+      i32.const 2
+      i32.add
+      i32.const 108
+      i32.store8
+      get_global 0
+      i32.const 3
+      i32.add
+      i32.const 115
+      i32.store8
+      get_global 0
+      i32.const 4
+      i32.add
+      i32.const 101
+      i32.store8
+      get_global 0
+      i32.const 5
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      i32.const 6
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      i32.const 7
+      i32.add
+      i32.const 0
+      i32.store8
+      get_global 0
+      get_global 0
+      i32.const 8
+      i32.add
+      set_global 0
+    end
+  )
+
+  (func $HelloInt_foo (param i32) (result i32) 
+    get_local 0
+    call $HelloInt_plus1
   )
 
   (func $HelloInt_plus1 (param i32) (result i32) 
+    i32.const 4
     get_local 0
-    i32.const 1
-    i32.add
-  )
-
-  (func $HelloInt_times2 (param i32) (result i32) 
-    i32.const 2
-    get_local 0
-    i32.mul
+    i32.lt_s
+    if (result i32)
+      get_local 0
+    else
+      get_local 0
+      i32.const 1
+      i32.add
+      call $HelloInt_plus1
+    end
   )
   (export "HelloInt_main" (func $HelloInt_main))
   (func $HelloInt_main 
-    i32.const 5
+    i32.const 1
+    call $HelloInt_foo
     drop
   )
 )
