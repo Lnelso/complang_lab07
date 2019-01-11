@@ -33,7 +33,7 @@ class ASTConstructorLL1 extends ASTConstructor {
         innerBodyRecur += (constructedName -> innerBodyCalls.toList)
         innerBodyCalls.clear()
 
-        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
         val shouldInline = shouldInlineRecur(constructedName)
 
@@ -103,7 +103,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def constructFunDefLocal(ptree: NodeOrLeaf[Token], cstFolding: Boolean = false): List[FunDef] ={
+  def constructFunDefLocal(ptree: NodeOrLeaf[Token]): List[FunDef] ={
     ptree match {
       case Node('FunDefLocal ::= List('FunDef, 'FunDefLocal), List(localFun, moreLocalFun)) =>
         constructFunDef(localFun) :: constructFunDefLocal(moreLocalFun)
