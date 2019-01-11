@@ -122,7 +122,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
 
       val paramsMap = paramNames.zip(newParams.map(_.name)).toMap
 
-      val localFunDefMap = localFunDefs map { case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))} toMap
+      val localFunDefMap = localFunDefs.map{ case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))}.toMap
 
       val transformedLocalDefs = if(localFunDefs.isEmpty) List() else localFunDefs.map(e => transformFunDefLocals(e, module, localFunDefMap)) //TODO add list of translated functions
 
