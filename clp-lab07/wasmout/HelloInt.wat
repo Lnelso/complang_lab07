@@ -259,57 +259,28 @@
     end
   )
 
-  (func $TestInlining_abs (param i32) (result i32) 
+  (func $HelloInt_foo (param i32) (result i32) 
     get_local 0
-    i32.const 0
+    call $HelloInt_plus1
+  )
+
+  (func $HelloInt_plus1 (param i32) (result i32) 
+    i32.const 4
+    get_local 0
     i32.lt_s
     if (result i32)
       get_local 0
     else
       get_local 0
+      i32.const 1
+      i32.add
+      call $HelloInt_plus1
     end
   )
-
-  (func $TestInlining_times2 (param i32) (result i32) 
-    i32.const 2
-    get_local 0
-    i32.mul
-  )
-
-  (func $TestInlining_func (param i32) (result i32) 
-    i32.const 4
-    i32.const 4
-    get_local 0
+  (export "HelloInt_main" (func $HelloInt_main))
+  (func $HelloInt_main 
     i32.const 1
-    i32.add
-    i32.mul
-    i32.add
-  )
-  (export "TestInlining_main" (func $TestInlining_main))
-  (func $TestInlining_main (local i32 i32 i32 i32)
-    i32.const 123
-    set_local 0
-    i32.const 456
-    set_local 1
-    i32.const 6
-    set_local 2
-    i32.const 12
-    set_local 3
-    get_local 0
-    call $Std_intToString
-    call $Std_printString
-    drop
-    get_local 1
-    call $Std_intToString
-    call $Std_printString
-    drop
-    get_local 2
-    call $Std_intToString
-    call $Std_printString
-    drop
-    get_local 3
-    call $Std_intToString
-    call $Std_printString
+    call $HelloInt_foo
     drop
   )
 )

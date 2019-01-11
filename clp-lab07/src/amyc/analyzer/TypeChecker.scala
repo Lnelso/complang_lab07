@@ -163,12 +163,27 @@ object TypeChecker extends Pipeline[(Program, SymbolTable), (Program, SymbolTabl
       }
     }
 
+    def localDefsTypeCheck(localDefs: List[FunDef]):Unit = {
+      localDefs match {
+        case head :: tail =>{
+          val env = head.params.map{ case ParamDef(name, tt) => name -> tt.tpe }.toMap
+          solveConstraints(genConstraints(head.body, head.retType.tpe)(env))
+          localDefsTypeCheck(head.localDefs)
+          localDefsTypeCheck(tail)
+        }
+        case Nil =>
+      }
+    }
+
+
+    //TODO TYPECHECK THE LOCAL FUNCTIONS
     // Putting it all together to type-check each module's functions and main expression.
     program.modules.foreach { mod =>
       // Put function parameters to the symbol table, then typecheck them against the return type
-      mod.defs.collect { case FunDef(_, params, retType, body, _) =>
+      mod.defs.collect { case FunDef(_, params, retType, localDefs, body, _, _) =>
         val env = params.map{ case ParamDef(name, tt) => name -> tt.tpe }.toMap
         solveConstraints(genConstraints(body, retType.tpe)(env))
+        localDefsTypeCheck(localDefs)
       }
 
       // Type-check expression if present. We allow the result to be of an arbitrary type by

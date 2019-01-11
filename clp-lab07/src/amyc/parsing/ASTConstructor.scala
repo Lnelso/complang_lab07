@@ -1,12 +1,14 @@
 package amyc
 package parsing
 
-import grammarcomp.parsing._
 import utils.Positioned
 import ast.NominalTreeModule._
 import Tokens._
+import grammarcomp.parsing._
 
+import scala.collection.mutable
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.MutableList
 
 // Will construct Amy trees from grammarcomp parse Trees.
 // Corresponds to Parser.msGrammar
@@ -14,6 +16,8 @@ class ASTConstructor {
 
   protected val inlinedFunctions = HashMap[Name, (FunDef, NodeOrLeaf[Token])]()
   protected val inlinedLocals = HashMap[ Name, Expr]()
+  protected val innerBodyCalls = MutableList[Name]()
+  protected val innerBodyRecur = HashMap[Name, List[Name]]()
 
   def constructProgram(ptree: NodeOrLeaf[Token]): Program = {
     ptree match {
@@ -60,13 +64,15 @@ class ASTConstructor {
           constructList(params, constructParam, hasComma = true).map(_.tt),
           constructName(parent)._1
         ).setPos(cse)
-      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, _, body, _)) =>
         FunDef(
           constructName(name)._1,
           constructList(params, constructParam, hasComma = true),
           constructType(retType),
+          List(),
           constructExpr(body),
-          isInlined = false
+          isInlined = false,
+          isLocal = false
         ).setPos(df)
     }
   }

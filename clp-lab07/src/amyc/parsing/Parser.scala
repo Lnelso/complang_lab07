@@ -65,8 +65,10 @@ object Parser extends Pipeline[Stream[Token], Program] {
     'AbstractClassDef ::= ABSTRACT() ~ CLASS() ~ 'Id,
     'CaseClassDef ::= CASE() ~ CLASS() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ EXTENDS() ~ 'Id,
 
-    'FunDef ::= INLINE() ~ DEF() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ COLON() ~ 'Type ~ EQSIGN() ~ LBRACE() ~ 'Expr ~ RBRACE() |
-                DEF() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ COLON() ~ 'Type ~ EQSIGN() ~ LBRACE() ~ 'Expr ~ RBRACE(),
+    'FunDefLocal ::= 'FunDef ~ 'FunDefLocal | epsilon(),
+    'FunDef ::= INLINE() ~ DEF() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ COLON() ~ 'Type ~ EQSIGN() ~ LBRACE() ~ 'FunDefLocal ~ 'Expr ~ RBRACE() |
+                DEF() ~ 'Id ~ LPAREN() ~ 'Params ~ RPAREN() ~ COLON() ~ 'Type ~ EQSIGN() ~ LBRACE() ~ 'FunDefLocal ~ 'Expr ~ RBRACE(),
+
     'Params ::= epsilon() | 'Param ~ 'ParamList,
     'ParamList ::= epsilon() | COMMA() ~ 'Param ~ 'ParamList,
     'Param ::= 'Id ~ COLON() ~ 'Type,
@@ -140,7 +142,7 @@ object Parser extends Pipeline[Stream[Token], Program] {
 
     GrammarUtils.isLL1WithFeedback(grammar) match {
       case InLL1() =>
-        // info("Grammar is in LL1")
+         //info("Grammar is in LL1")
       case other =>
         warning(other)
     }

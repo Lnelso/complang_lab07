@@ -3,6 +3,7 @@ package analyzer
 
 import utils._
 import ast.{Identifier, NominalTreeModule => N, SymbolicTreeModule => S}
+import sun.security.pkcs11.Secmod.Module
 
 // Name analyzer for Amy
 // Takes a nominal program (names are plain strings, qualified names are string pairs)
@@ -25,7 +26,6 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
     }
 
     modNames.keys.toList foreach table.addModule
-
 
     // Helper method: will transform a nominal type 'tt' to a symbolic type,
     // given that we are within module 'inModule'.
@@ -61,11 +61,26 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
                                                      case _ => Nil}}
 
     // Step 5: Discover functions signatures, add them to table
-    p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, _, isInlined) =>
+    p.modules.foreach{module => module.defs.foreach{ case N.FunDef(name, params, retType, listLocalFunDef, _, isInlined, isLocal) =>
                                                        val paramsToSymbolic = params.map(param => transformType(param.tt, module.name))
                                                        val retToSymbolic = transformType(retType, module.name)
-                                                       table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined)
+                                                        addLocalDefsToSymbolTable(listLocalFunDef, module)
+                                                        table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined, isLocal)
                                                      case _ => Nil}}
+
+    def addLocalDefsToSymbolTable(listFunDef: List[N.FunDef], module: N.ModuleDef): Unit = {
+      if(listFunDef.nonEmpty){
+        listFunDef.foreach{
+          case N.FunDef(name, params, retType, listLocalFunDef, _, isInlined, isLocal) =>
+            val paramsToSymbolic = params.map(param => transformType(param.tt, module.name))
+            val retToSymbolic = transformType(retType, module.name)
+            addLocalDefsToSymbolTable(listLocalFunDef, module)
+            table.addFunction(module.name, name, paramsToSymbolic, retToSymbolic, isInlined, isLocal)
+
+          case _ => Nil
+        }
+      }
+    }
 
     // Step 6: We now know all definitions in the program.
     //         Reconstruct modules and analyse function bodies/ expressions
@@ -89,7 +104,7 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
     }}.setPos(df)
 
     def transformFunDef(fd: N.FunDef, module: String): S.FunDef = {
-      val N.FunDef(name, params, retType, body, isInlined) = fd
+      val N.FunDef(name, params, retType, localFunDefs, body, isInlined, isLocal) = fd
       val Some((sym, sig)) = table.getFunction(module, name)
 
       params.groupBy(_.name).foreach { case (nameIn, ps) =>
@@ -107,14 +122,52 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
 
       val paramsMap = paramNames.zip(newParams.map(_.name)).toMap
 
+      val localFunDefMap = localFunDefs map { case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))} toMap
+
+      val transformedLocalDefs = if(localFunDefs.isEmpty) List() else localFunDefs.map(e => transformFunDefLocals(e, module, localFunDefMap)) //TODO add list of translated functions
+
       S.FunDef(
         sym,
         newParams,
         S.TypeTree(sig.retType).setPos(retType),
-        transformExpr(body)(module, (paramsMap, Map())),
-        isInlined
+        transformedLocalDefs,
+        transformExpr(body)(module, (paramsMap, localFunDefMap)),
+        isInlined,
+        isLocal
       ).setPos(fd)
     }
+
+    def transformFunDefLocals(fd: N.FunDef, module: String, localsMap: Map[String, Identifier]): S.FunDef = {
+      val N.FunDef(name, params, retType, localFunDefs, body, isInlined, isLocal) = fd
+      val Some((sym, sig)) = table.getFunction(module, name)
+
+      params.groupBy(_.name).foreach { case (nameIn, ps) =>
+        if (ps.size > 1) {
+          fatal(s"Two parameters named $nameIn in function ${fd.name}", fd)
+        }
+      }
+
+      val paramNames = params.map(_.name)
+
+      val newParams = params zip sig.argTypes map { case (pd@N.ParamDef(nameIn, tt), tpe) =>
+        val s = Identifier.fresh(nameIn)
+        S.ParamDef(s, S.TypeTree(tpe).setPos(tt)).setPos(pd)
+      }
+
+      val paramsMap = paramNames.zip(newParams.map(_.name)).toMap
+
+      val localFunDefMap = localFunDefs.map{ case e:N.FunDef => (e.name.toString() -> Identifier.fresh(e.name))}.toMap
+
+      S.FunDef(
+        sym,
+        newParams,
+        S.TypeTree(sig.retType).setPos(retType),
+        localFunDefs.map(e => transformFunDefLocals(e, module, localsMap ++ localFunDefMap)),
+        transformExpr(body)(module, (paramsMap, localsMap ++ localFunDefMap)),
+        isInlined,
+        isLocal
+      ).setPos(fd)
+      }
 
     // This function takes as implicit a pair of two maps:
     // The first is a map from names of parameters to their unique identifiers,
@@ -202,6 +255,11 @@ object NameAnalyzer extends Pipeline[N.Program, (S.Program, SymbolTable)] {
             case Some((id, paramsFunc)) =>
               if (paramsFunc.argTypes.size != args.size) {
                 fatal(s"Arguments number mismatch", call)
+              }
+              if (paramsFunc.isLocal){
+                if (!locals.contains(qname.toString)){
+                  fatal(s"Function $qname is not in scope", call)
+                }
               }
               S.Call(id, args.map(transformExpr))
             case None =>

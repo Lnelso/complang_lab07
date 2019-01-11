@@ -37,21 +37,40 @@ trait Printer {
 
       case CaseClassDef(name, fields, parent) =>
         def printField(f: TypeTree) = "v: " <:> rec(f)
+
         "case class " <:> name <:> "(" <:> Lined(fields map printField, ", ") <:> ") extends " <:> parent
 
-      case FunDef(name, params, retType, body, false) =>
-        Stacked(
-          "def " <:> name <:> "(" <:> Lined(params map (rec(_)), ", ") <:> "): " <:> rec(retType) <:> " = {",
-          Indented(rec(body, false)),
-          "}"
-        )
+      case FunDef(name, params, retType, localDefs, body, false, _) =>
+        if (localDefs.nonEmpty) {
+          Stacked(
+            "def " <:> name <:> "(" <:> Lined(params map (rec(_)), ", ") <:> "): " <:> rec(retType) <:> " = {",
+            Indented(localDefs.map { x => rec(x, false) }.reduce((a, b) => a <:> b) <:> rec(body, false)),
+            "}"
+          )
+        }
+        else{
+          Stacked(
+            "def " <:> name <:> "(" <:> Lined(params map (rec(_)), ", ") <:> "): " <:> rec(retType) <:> " = {",
+            Indented(rec(body, false)),
+            "}"
+          )
+        }
 
-      case FunDef(name, params, retType, body, true) =>
-        Stacked(
-          "inline def " <:> name <:> "(" <:> Lined(params map (rec(_)), ", ") <:> "): " <:> rec(retType) <:> " = {",
-          Indented(rec(body, false)),
-          "}"
-        )
+      case FunDef(name, params, retType, localDefs, body, true, _) =>
+        if (localDefs.nonEmpty) {
+          Stacked(
+            "inline def " <:> name <:> "(" <:> Lined(params map (rec(_)), ", ") <:> "): " <:> rec(retType) <:> " = {",
+            Indented(localDefs.map { x => rec(x, false) }.reduce((a, b) => a <:> b) <:> rec(body, false)),
+            "}"
+          )
+        }
+        else{
+          Stacked(
+            "inline def " <:> name <:> "(" <:> Lined(params map (rec(_)), ", ") <:> "): " <:> rec(retType) <:> " = {",
+            Indented(rec(body, false)),
+            "}"
+          )
+        }
 
       case ParamDef(name, tpe) =>
         name <:> ": " <:> rec(tpe)

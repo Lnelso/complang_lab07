@@ -19,14 +19,22 @@ object CodeGen extends Pipeline[(Program, SymbolTable), Module] {
       val ModuleDef(name, defs, optExpr) = moduleDef
       // Generate code for all functions
       defs.collect { case fd: FunDef if !builtInFunctions(fullName(name, fd.name)) =>
-        cgFunction(fd, name, false)
-      } ++
+        cgFunction(fd, name, false) :: getLocalFun(fd.localDefs, name)
+      }.flatten :::
         // Generate code for the "main" function, which contains the module expression
         optExpr.toList.map { expr =>
-          val mainFd = FunDef(Identifier.fresh("main"), Nil, TypeTree(IntType), expr, isInlined = false)
+          val mainFd = FunDef(Identifier.fresh("main"), Nil, TypeTree(IntType), List(), expr, isInlined = false, isLocal = false)
           cgFunction(mainFd, name, true)
         }
     }
+
+    def getLocalFun(fd: List[FunDef], name: Identifier): List[Function] = {
+      fd match {
+        case head :: tail => cgFunction(head, name, false) :: getLocalFun(head.localDefs, name) ::: getLocalFun(tail, name)
+        case Nil => List()
+      }
+    }
+
 
     // Generate code for a function in module 'owner'
     def cgFunction(fd: FunDef, owner: Identifier, isMain: Boolean): Function = {

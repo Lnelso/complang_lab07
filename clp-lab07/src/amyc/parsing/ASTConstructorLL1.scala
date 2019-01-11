@@ -1,11 +1,14 @@
 package amyc
 package parsing
 
+import amyc.utils._
 import scala.collection.mutable.HashMap
 import grammarcomp.parsing._
 import utils.Positioned
 import ast.NominalTreeModule._
 import Tokens._
+
+
 
 // Implements the translation from parse trees to ASTs for the LL1 grammar,
 // that is, this should correspond to Parser.amyGrammarLL1.
@@ -23,26 +26,61 @@ class ASTConstructorLL1 extends ASTConstructor {
           constructList(params, constructParam, hasComma = true).map(_.tt),
           constructName(parent)._1
         ).setPos(cse)
-      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
-        val constructedParams = constructList(params, constructParam, hasComma = true, true)
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
+        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val constructedName = constructName(name)._1
+        val constrBody = constructExpr(body, cstFolding = true)
+        innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        innerBodyCalls.clear()
+
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
+
+        val shouldInline = shouldInlineRecur(constructedName, List())
+
+        innerBodyRecur.clear()
+
         val fd = FunDef(
-                   constructName(name)._1,
+                   constructedName,
                    constructedParams,
                    constructType(retType),
-                   constructExpr(body, cstFolding = true),
-                   isInlined = true
+                   constrFunDefLoc,
+                   constrBody,
+                   isInlined = true,
+                   isLocal = false
                  ).setPos(df)
         inlinedFunctions += (fd.name -> (fd, body))
         fd
 
-      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, body, _)) =>
-        FunDef(
-          constructName(name)._1,
-          constructList(params, constructParam, hasComma = true),
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
+
+        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val constructedName = constructName(name)._1
+        val constrBody = constructExpr(body)
+        innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        innerBodyCalls.clear()
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
+
+        innerBodyRecur.clear()
+
+        val fd = FunDef(
+          constructedName,
+          constructedParams,
           constructType(retType),
-          constructExpr(body),
-          isInlined = false
+          constrFunDefLoc,
+          constructExpr(body, false),
+          isInlined = false,
+          isLocal = false
         ).setPos(df)
+
+        fd
+    }
+  }
+
+  def shouldInlineRecur(start: Name, acc: List[Name]): Boolean = {
+    val a = innerBodyRecur(start)
+    a match {
+      case head :: tail => if(acc.contains(start)) false else a.map(e => shouldInlineRecur(e, start :: acc)).reduce((e1, e2) => e1 && e2)
+      case Nil => true
     }
   }
 
@@ -58,6 +96,72 @@ class ASTConstructorLL1 extends ASTConstructor {
             val (name, pos) = constructName(id)
             (QualifiedName(None, name), pos)
         }
+    }
+  }
+
+  def constructFunDefLocal(ptree: NodeOrLeaf[Token], cstFolding: Boolean = false): List[FunDef] ={
+    ptree match {
+      case Node('FunDefLocal ::= List('FunDef, 'FunDefLocal), List(localFun, moreLocalFun)) =>
+        constructFunDef(localFun) :: constructFunDefLocal(moreLocalFun)
+
+      case Node('FunDefLocal ::= _, List(localFun)) =>
+        List(constructFunDef(localFun))
+
+      case Node('FunDefLocal ::= _, List()) => List()
+    }
+  }
+
+  def constructFunDef(ptree: NodeOrLeaf[Token]): FunDef = {
+    ptree match {
+      case Node('FunDef ::= (INLINE() :: _), List(_, Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
+        val constructedParams = constructList(params, constructParam, hasComma = true, true)
+        val constructedName = constructName(name)._1
+        val constrBody = constructExpr(body, cstFolding = true)
+
+        innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        innerBodyCalls.clear()
+
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
+
+        val shouldInline = shouldInlineRecur(constructedName, List())
+
+        val fd = FunDef(
+          constructedName,
+          constructedParams,
+          constructType(retType),
+          constrFunDefLoc,
+          constrBody,
+          isInlined = true,
+          isLocal = true
+        ).setPos(df)
+        inlinedFunctions += (fd.name -> (fd, body))
+        fd
+
+      case Node('FunDef ::= _, List(Leaf(df), name, _, params, _, _, retType, _, _, listFunDefLocal, body, _)) =>
+        val constructedParams = constructList(params, constructParam, hasComma = true)
+        val constructedName = constructName(name)._1
+        val constrBody = constructExpr(body)
+        innerBodyRecur += (constructedName -> innerBodyCalls.toList)
+        innerBodyCalls.clear()
+        val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
+
+        val shouldInline = shouldInlineRecur(constructedName, List())
+
+
+        val fd = FunDef(
+          constructedName,
+          constructedParams,
+          constructType(retType),
+          constrFunDefLoc,
+          constructExpr(body, shouldInline),
+          isInlined = shouldInline,
+          isLocal = true
+        ).setPos(df)
+
+        if(shouldInline){
+          inlinedFunctions += (fd.name -> (fd, body))
+        }
+        fd
     }
   }
 
@@ -188,6 +292,8 @@ class ASTConstructorLL1 extends ASTConstructor {
                 val (name, _) = constructName(idIN)
                 val qname = QualifiedName(Some(module), name)
 
+                innerBodyCalls += name
+
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
                   val nameWithExpr = inlinedFunctions(name)._1.paramNames.zip(myargs)
@@ -202,6 +308,8 @@ class ASTConstructorLL1 extends ASTConstructor {
               case Node('CallInner ::= (LPAREN() :: _), List(_, args, _)) =>
                 val (name, pos) = constructName(id)
                 val qname = QualifiedName(None, name)
+
+                innerBodyCalls += name
 
                 if(inlinedFunctions.get(name).isDefined){
                   val myargs = constructList(args, constructExpr, hasComma = true, cstFolding = true)
@@ -386,9 +494,7 @@ class ASTConstructorLL1 extends ASTConstructor {
       }
 
       case LessEquals => (leftopd, nextAtom) match{
-        case (IntLiteral(_), IntLiteral(_)) =>
-          print("came here")
-          constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
+        case (IntLiteral(_), IntLiteral(_)) => constructOpExpr(BooleanLiteral(leftopd.asInt < nextAtom.asInt).setPos(leftopd), suf, true)
         case _ => constructOpExpr(constructOp(op)(leftopd, nextAtom).setPos(leftopd), suf, true)
       }
 
