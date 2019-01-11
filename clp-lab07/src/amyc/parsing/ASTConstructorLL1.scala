@@ -35,7 +35,7 @@ class ASTConstructorLL1 extends ASTConstructor {
 
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
 
-        val shouldInline = shouldInlineRecur(constructedName, "", 0, 6)
+        val shouldInline = shouldInlineRecur(constructedName, "", 0, 4)
 
         innerBodyRecur.clear()
 
@@ -127,7 +127,7 @@ class ASTConstructorLL1 extends ASTConstructor {
 
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
-        val shouldInline = shouldInlineRecur(constructedName, "", 0, 6)
+        val shouldInline = shouldInlineRecur(constructedName, "", 0, 4)
 
         val fd = FunDef(
           constructedName,
@@ -149,7 +149,7 @@ class ASTConstructorLL1 extends ASTConstructor {
         innerBodyCalls.clear()
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
-        val shouldInline = shouldInlineRecur(constructedName, "", 0, 6)
+        val shouldInline = shouldInlineRecur(constructedName, "", 0, 4)
 
 
         val fd = FunDef(
