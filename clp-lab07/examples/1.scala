@@ -1,3 +1,0 @@
-object HelloInt {
-1
-}

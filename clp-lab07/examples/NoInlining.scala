@@ -1,4 +1,5 @@
-object HelloInt {
+
+object NoInlining {
   def foo(n: Int): Int = {
     def plus1(n: Int): Int = {
       if(4 < n) {n}
@@ -7,5 +8,5 @@ object HelloInt {
     plus1(n) // inl
   }
 
-  foo(1)
+  Std.printString(Std.intToString(foo(1)))
 }
