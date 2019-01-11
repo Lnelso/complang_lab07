@@ -35,7 +35,7 @@ class ASTConstructorLL1 extends ASTConstructor {
 
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal, cstFolding = true)
 
-        val shouldInline = shouldInlineRecur(constructedName, List(), 0, 6)
+        val shouldInline = shouldInlineRecur(constructedName, "", 0, 6)
 
         innerBodyRecur.clear()
 
@@ -76,17 +76,18 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def shouldInlineRecur(start: Name, acc: List[Name], actualDepth: Int, maxDepth: Int): Boolean = {
+  def shouldInlineRecur(start: Name, current: Name, actualDepth: Int, maxDepth: Int): Boolean = {
     if (actualDepth >= maxDepth) {
       true
     } else {
       val a = innerBodyRecur(start)
       a match {
-        case head :: tail => if (acc.contains(start)) false else a.map(e => shouldInlineRecur(e, start :: acc, actualDepth + 1, maxDepth)).reduce((e1, e2) => e1 && e2)
+        case head :: tail => if (current == start) false else a.map(e => shouldInlineRecur(start, e, actualDepth + 1, maxDepth)).reduce((e1, e2) => e1 && e2)
         case Nil => true
       }
     }
   }
+
   override def constructQname(ptree: NodeOrLeaf[Token]): (QualifiedName, Positioned) = {
     ptree match {
       case Node('QName ::= _, List(id, qnameInner)) =>
@@ -126,7 +127,7 @@ class ASTConstructorLL1 extends ASTConstructor {
 
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
-        val shouldInline = shouldInlineRecur(constructedName, List(), 0, 6)
+        val shouldInline = shouldInlineRecur(constructedName, "", 0, 6)
 
         val fd = FunDef(
           constructedName,
@@ -148,7 +149,7 @@ class ASTConstructorLL1 extends ASTConstructor {
         innerBodyCalls.clear()
         val constrFunDefLoc = constructFunDefLocal(listFunDefLocal)
 
-        val shouldInline = shouldInlineRecur(constructedName, List(), 0, 6)
+        val shouldInline = shouldInlineRecur(constructedName, "", 0, 6)
 
 
         val fd = FunDef(
