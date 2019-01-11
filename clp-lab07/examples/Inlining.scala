@@ -1,18 +1,28 @@
 object Inlining {
-  inline def inlinedSquare(square: Int): Int = {
-    square * square
+  inline def abs(n: Int): Int = {
+    if (n < 0){
+      -n
+    }
+    else{
+      n
+    }
   }
 
-  def test(bullshit: Int): Int = {
-    val a: Int = inlinedSquare(2);
-    val b: Int = inlinedSquare(3);
-    a
+  inline def times2(n: Int): Int = {
+    2 * n
   }
 
-  Std.printString("5^2 = "  ++ Std.intToString(inlinedSquare(5)));
-  Std.printString("10^2 = "  ++ Std.intToString(inlinedSquare(10)));
-  Std.printString("100^2 = "  ++ Std.intToString(inlinedSquare(100)));
-  Std.printString("9^2 = "  ++ Std.intToString(inlinedSquare(9)));
-  Std.printString("5^2 = "  ++ Std.intToString(inlinedSquare(5)));
-  Std.printString(Std.intToString(test(3)))
+  inline def func(n: Int): Int ={
+    2 + 2 + times2(times2(n+1))
+  }
+
+  val a: Int = abs(123);
+  val b: Int = abs(-456);
+  val c: Int = times2(3);
+  val d: Int = func(1);
+
+  Std.printString(Std.intToString(a));
+  Std.printString(Std.intToString(b));
+  Std.printString(Std.intToString(c));
+  Std.printString(Std.intToString(d))
 }
