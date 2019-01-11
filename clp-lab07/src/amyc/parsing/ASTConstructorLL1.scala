@@ -76,7 +76,7 @@ class ASTConstructorLL1 extends ASTConstructor {
     }
   }
 
-  def shouldInlineRecur(start: Name, current: Name = "", actualDepth: Int = 0, maxDepth: Int = 4): Boolean = {
+  def shouldInlineRecur(start: Name, current: Name = "", actualDepth: Int = 0, maxDepth: Int = 5): Boolean = {
     if (actualDepth >= maxDepth) {
       true
     } else {
